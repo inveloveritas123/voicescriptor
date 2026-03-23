@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Report Pipeline</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',-apple-system,sans-serif;background:#0c0d12;color:#d1d5db;min-height:100vh}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px}
+h1{font-size:20px;font-weight:600;color:#f9fafb;margin-bottom:4px}
+.sub{font-size:13px;color:#6b7280;margin-bottom:24px}
+.card{background:#151620;border:1px solid #1e2030;border-radius:10px;padding:20px;margin-bottom:14px}
+.ct{font-size:15px;font-weight:600;color:#e5e7eb;margin-bottom:14px}
+label{display:block;font-size:12px;color:#9ca3af;margin-bottom:3px;font-weight:500}
+input,select,textarea{width:100%;padding:9px 12px;background:#0c0d12;border:1px solid #1e2030;border-radius:7px;color:#e5e7eb;font-size:14px;margin-bottom:10px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6}
+textarea{resize:vertical}
+.row{display:grid;gap:10px}.r3{grid-template-columns:1fr 1fr 1fr}
+button{padding:9px 18px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.bb{background:#2563eb;color:#fff}.bb:hover{background:#1d4ed8}.bb:disabled{background:#1e3a5f;color:#6b7280;cursor:wait}
+.bs{padding:5px 10px;font-size:11px;border-radius:5px}
+.bg{background:transparent;border:1px solid #1e2030;color:#9ca3af}.bg:hover{border-color:#3b82f6;color:#e5e7eb}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:#d1d5db}
+.chk input{width:16px;height:16px;accent-color:#2563eb;margin:0}
+.badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600}
+.bok{background:#052e16;color:#4ade80}.bno{background:#2a1215;color:#f87171}.bst{background:#1e1b4b;color:#a78bfa}
+.res{background:#0c0d12;border:1px solid #1e2030;border-radius:7px;padding:14px;margin-top:12px;font-size:13px;line-height:1.65;max-height:450px;overflow-y:auto;white-space:pre-wrap;display:none}
+.dz{border:2px dashed #1e2030;border-radius:10px;padding:28px;text-align:center;color:#6b7280;font-size:13px;cursor:pointer;transition:all .2s;margin-bottom:10px}
+.dz:hover,.dz.over{border-color:#3b82f6;color:#93c5fd;background:#0c1629}
+.ri{padding:12px 0;border-bottom:1px solid #1e2030}.ri:last-child{border:none}
+.rt{font-size:14px;font-weight:500;color:#e5e7eb}
+.rm{font-size:11px;color:#6b7280;margin-top:3px}
+.rl{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.rl a{font-size:12px;color:#60a5fa;text-decoration:none;padding:3px 8px;border:1px solid #1e2030;border-radius:5px}
+.rl a:hover{border-color:#3b82f6}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #1e2030;border-top-color:#3b82f6;border-radius:50%;animation:sp .7s linear infinite;margin-left:8px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+#sp{display:none}#sp.on{display:inline}
+</style></head><body>
+<div class="wrap">
+<h1>Report Pipeline v4</h1>
+<div class="sub">YouTube &amp; Sprachnachrichten in hochwertige Reports verwandeln</div>
+
+<div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+<div style="font-size:12px;color:#9ca3af">Nextcloud: <span id="nc"></span></div>
+<div style="font-size:12px;color:#9ca3af">LLM: <span id="llm"></span></div>
+</div>
+
+<div class="card">
+<div class="ct">Neuer Report</div>
+<div style="display:flex;gap:6px;margin-bottom:14px">
+<button class="bs bb" id="tyt" onclick="stab('yt')">YouTube</button>
+<button class="bs bg" id="tup" onclick="stab('up')">Audio hochladen</button>
+</div>
+
+<div id="iyt">
+<label>YouTube URL(s) — mehrere mit Semikolon trennen</label>
+<textarea id="url" style="height:44px" placeholder="https://youtube.com/watch?v=...  oder  url1 ; url2 ; url3"></textarea>
+<div class="chk" id="bopt" style="display:none"><input type="checkbox" id="comb"><span>Alle Videos in einem Report zusammenfassen</span></div>
+</div>
+
+<div id="iup" style="display:none">
+<div class="dz" id="dz" onclick="document.getElementById('af').click()">
+<div style="font-size:24px;margin-bottom:6px">&#127908;</div>
+Audiodatei hierher ziehen oder klicken<br>
+<small>.ogg (WhatsApp) .mp3 .m4a .wav .webm</small>
+<div id="dfn" style="font-size:12px;color:#22c55e;margin-top:6px"></div>
+</div>
+<input type="file" id="af" accept=".ogg,.mp3,.m4a,.wav,.webm,.opus,.flac" style="display:none" onchange="fsel(this)">
+<label>Titel</label>
+<input id="atit" placeholder="z.B. Meeting mit Max, WhatsApp von Lisa...">
+</div>
+
+<div class="row r3">
+<div><label>Report-Stil</label><select id="sty">
+<option value="executive">Executive Summary</option><option value="detailed">Detailanalyse</option>
+<option value="newsletter">Newsletter</option><option value="transcript_only">Nur Transkript</option>
+<option value="raw">Rohdaten</option></select></div>
+<div><label>Sprache</label><select id="lng">
+<option value="de">Deutsch</option><option value="en">English</option><option value="auto">Auto</option></select></div>
+<div><label>LLM Provider</label><select id="prov"></select></div>
+</div>
+
+<div class="chk"><input type="checkbox" id="csum" checked><span>KI-Zusammenfassung</span></div>
+<div class="chk"><input type="checkbox" id="ctr" checked><span>Fremdsprache auf Deutsch uebersetzen</span></div>
+<div class="chk"><input type="checkbox" id="cnc" checked><span>In Nextcloud hochladen</span></div>
+
+<label>Extra-Kontext (optional)</label>
+<textarea id="ctx" style="height:50px" placeholder="Zusaetzlicher Kontext oder Fragen..."></textarea>
+
+<div style="display:flex;align-items:center;gap:10px">
+<button class="bb" id="bgo" onclick="go()">Report erstellen</button>
+<span id="sp"><span class="spin"></span></span>
+<span id="log" style="font-size:12px;color:#6b7280"></span>
+</div>
+<div id="res" class="res"></div>
+</div>
+
+<div class="card">
+<div class="ct">Verlauf</div>
+<div id="rlist" style="font-size:13px;color:#6b7280">Lade...</div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:#374151;padding:16px 0">VoiceScriptor Report Pipeline v4 — Audio wird nach 24h automatisch geloescht</div>
+</div>
+
+<script>
+var tab='yt',sf=null;
+function stab(t){tab=t;
+document.getElementById('iyt').style.display=t==='yt'?'block':'none';
+document.getElementById('iup').style.display=t==='up'?'block':'none';
+document.getElementById('tyt').className=t==='yt'?'bs bb':'bs bg';
+document.getElementById('tup').className=t==='up'?'bs bb':'bs bg';}
+
+var dz=document.getElementById('dz');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',function(){dz.classList.remove('over')});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files.length){sf=e.dataTransfer.files[0];sff()}});
+function fsel(i){if(i.files.length){sf=i.files[0];sff()}}
+function sff(){if(sf)document.getElementById('dfn').textContent=sf.name+' ('+(sf.size/1024/1024).toFixed(1)+' MB)'}
+
+document.getElementById('url').addEventListener('input',function(){
+document.getElementById('bopt').style.display=this.value.includes(';')?'flex':'none'});
+
+async function lp(){try{var r=await fetch('/providers'),p=await r.json(),s=document.getElementById('prov');s.innerHTML='';
+p.forEach(function(x){var o=document.createElement('option');o.value=x.id;o.textContent=x.name+(x.configured?'':' (kein Key)');o.disabled=!x.configured;s.appendChild(o)})}catch(e){}}
+
+async function cs(){try{var r=await fetch('/nextcloud/status'),d=await r.json();
+document.getElementById('nc').innerHTML=d.reachable?'<span class="badge bok">v'+d.version+'</span>':d.configured?'<span class="badge bno">offline</span>':'<span class="badge bno">nicht konfiguriert</span>'}catch(e){}
+try{var r2=await fetch('/health'),d2=await r2.json();var n=Object.values(d2.providers||{}).filter(function(v){return v}).length;
+document.getElementById('llm').innerHTML='<span class="badge bok">'+n+' Provider</span>'+(d2.litellm?' <span class="badge bok">LiteLLM</span>':'')}catch(e){}}
+
+async function go(){var btn=document.getElementById('bgo'),log=document.getElementById('log'),sp=document.getElementById('sp'),res=document.getElementById('res');
+btn.disabled=true;sp.className='on';res.style.display='none';
+try{var resp;
+if(tab==='up'&&sf){log.textContent='Audio hochladen + transkribieren...';var fd=new FormData();
+fd.append('file',sf);fd.append('title',document.getElementById('atit').value||sf.name);
+fd.append('style',document.getElementById('sty').value);fd.append('language',document.getElementById('lng').value);
+fd.append('extra_context',document.getElementById('ctx').value);fd.append('llm_provider',document.getElementById('prov').value);
+fd.append('auto_summary',document.getElementById('csum').checked);fd.append('translate_to_german',document.getElementById('ctr').checked);
+fd.append('upload_to_nextcloud',document.getElementById('cnc').checked);
+resp=await fetch('/report/upload',{method:'POST',body:fd})}
+else{var u=document.getElementById('url').value.trim();if(!u){log.textContent='URL eingeben';btn.disabled=false;sp.className='';return}
+var batch=u.includes(';'),ep=batch?'/report/batch':'/report';
+var b={style:document.getElementById('sty').value,language:document.getElementById('lng').value,
+extra_context:document.getElementById('ctx').value,upload_to_nextcloud:document.getElementById('cnc').checked,
+auto_summary:document.getElementById('csum').checked,translate_to_german:document.getElementById('ctr').checked,
+llm_provider:document.getElementById('prov').value};
+if(batch){b.urls=u;b.combine=document.getElementById('comb').checked;
+log.textContent='Batch: '+u.split(';').filter(function(x){return x.trim()}).length+' Videos...'}
+else{b.url=u;log.textContent='Report wird erstellt...'}
+resp=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})}
+var d=await resp.json();if(!resp.ok)throw new Error(d.detail||JSON.stringify(d));
+log.textContent='';res.style.display='block';
+if(d.mode==='combined')res.textContent=d.report+'\n\n--- '+d.videos_processed+' Videos verarbeitet';
+else if(d.mode==='separate')res.textContent=d.results.map(function(r){return r.error?'FEHLER: '+r.url:('OK: '+r.title)}).join('\n');
+else{var t=d.report||d.transcript_text||'(kein Text)';if(d.nextcloud&&d.nextcloud.length>0&&!d.nextcloud[0].error)t+='\n\n--- Nextcloud: '+d.nextcloud[0].folder+'/';res.textContent=t}
+lr()}catch(e){log.textContent='Fehler: '+e.message}finally{btn.disabled=false;sp.className=''}}
+
+async function lr(){try{var r=await fetch('/reports'),l=await r.json(),el=document.getElementById('rlist');
+if(!l.length){el.innerHTML='Noch keine Reports';return}
+el.innerHTML=l.map(function(r){var dur=r.duration?Math.floor(r.duration/60)+':'+('0'+r.duration%60).slice(-2):'';
+return '<div class="ri"><div class="rt">'+esc(r.title)+'</div><div class="rm">'+
+(r.channel?esc(r.channel)+' | ':'')+
+(r.style?'<span class="badge bst">'+r.style+'</span> ':'')+
+(r.language||'')+' '+(dur||'')+' '+(r.provider?r.provider:'')+ ' | '+
+(r.created_at||'').slice(0,16).replace('T',' ')+
+'</div><div class="rl">'+
+(r.has_pdf?'<a href="/reports/'+r.report_id+'/pdf" target="_blank">PDF</a>':'')+
+(r.has_txt?'<a href="/reports/'+r.report_id+'/txt" target="_blank">TXT</a>':'')+
+'<a href="/reports/'+r.report_id+'/md" target="_blank">MD</a>'+
+'<a href="/reports/'+r.report_id+'/html" target="_blank">HTML</a>'+
+(r.has_audio?'<a href="/reports/'+r.report_id+'/audio" target="_blank">Audio '+(r.audio?r.audio.size_mb+'MB':'')+'</a>':'')+
+'</div></div>'}).join('')}catch(e){document.getElementById('rlist').textContent='Fehler: '+e.message}}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+lp();cs();lr();
+</script>
+</body></html>

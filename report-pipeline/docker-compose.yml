@@ -1,0 +1,29 @@
+services:
+  report:
+    build: .
+    container_name: report-pipeline
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "10.10.0.1:8480:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - VOICESCRIPTOR_URL=http://10.10.0.1:8470
+      - VOICESCRIPTOR_USER=robert
+      - VOICESCRIPTOR_PASS=!BesterMann1234
+      - LITELLM_BASE=http://10.20.0.1:4000
+      - LITELLM_KEY=sk-kolonie-litellm
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen(http://localhost:8000/health)"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 30s

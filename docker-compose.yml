@@ -1,0 +1,94 @@
+# VoiceScriptor v4 — POT Token + Report Pipeline
+# 3-Container Stack: voicescriptor + pot-server + report-pipeline
+
+services:
+  # ── PO Token Server (YouTube Bot-Detection Fix) ────────
+  pot-server:
+    image: brainicism/bgutil-ytdlp-pot-provider
+    container_name: voicescriptor-pot
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4416:4416"
+    environment:
+      - TOKEN_TTL=6
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4416/ping"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+  # ── VoiceScriptor (Transkription) ──────────────────────
+  app:
+    build: .
+    container_name: voicescriptor
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8470}:8000"
+    volumes:
+      - ./data:/app/data
+    env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - UVICORN_LOOP=asyncio
+      - POT_SERVER_URL=http://pot-server:4416
+    depends_on:
+      pot-server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Report Pipeline (Zusammenfassung + Export) ─────────
+  report-pipeline:
+    build: ./report-pipeline
+    container_name: voicescriptor-reports
+    restart: unless-stopped
+    ports:
+      - "${REPORT_PORT:-8480}:8000"
+    volumes:
+      - ./data:/app/data
+    env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - VOICESCRIPTOR_URL=http://app:8000
+      - VOICESCRIPTOR_USER=robert
+      - VOICESCRIPTOR_PASS=!BesterMann1234
+      - REQUESTY_API_KEY=${REQUESTY_API_KEY:-}
+      - REQUESTY_MODEL=${REQUESTY_MODEL:-anthropic/claude-sonnet-4-20250514}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - CUSTOM_LLM_BASE=${CUSTOM_LLM_BASE:-}
+      - CUSTOM_LLM_KEY=${CUSTOM_LLM_KEY:-not-needed}
+      - CUSTOM_LLM_MODEL=${CUSTOM_LLM_MODEL:-}
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL:-http://152.53.142.163:8490}
+      - NEXTCLOUD_USER=${NEXTCLOUD_USER:-robert}
+      - NEXTCLOUD_PASS=${NEXTCLOUD_PASS:-}
+      - NEXTCLOUD_FOLDER=${NEXTCLOUD_FOLDER:-YT-Reports}
+      - REPORT_API_KEY=${REQUESTY_API_KEY:-}
+    depends_on:
+      app:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

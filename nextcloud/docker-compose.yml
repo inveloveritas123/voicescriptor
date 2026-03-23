@@ -1,0 +1,43 @@
+# Nextcloud — Eigener Stack, separiert von VoiceScriptor
+# Deployment: /home/meister/nextcloud/
+
+services:
+  db:
+    image: mariadb:11
+    container_name: nextcloud-db
+    restart: unless-stopped
+    volumes:
+      - ./db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${NC_DB_ROOT_PASS:-nextcloud-root-2026}
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NC_DB_PASS:-nextcloud-db-2026}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  app:
+    image: nextcloud:29
+    container_name: nextcloud
+    restart: unless-stopped
+    ports:
+      - "${NC_PORT:-8490}:80"
+    volumes:
+      - ./data:/var/www/html
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NC_DB_PASS:-nextcloud-db-2026}
+      NEXTCLOUD_ADMIN_USER: ${NC_ADMIN_USER:-robert}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NC_ADMIN_PASS:-}
+      NEXTCLOUD_TRUSTED_DOMAINS: "152.53.142.163 localhost"
+      OVERWRITEPROTOCOL: http
+    depends_on:
+      - db
+    deploy:
+      resources:
+        limits:
+          memory: 1G

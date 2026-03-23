@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    container_name: voicescriptor
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "10.10.0.1:8470:8000"
+    volumes:
+      - ./data:/app/data
+    env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - UVICORN_LOOP=asyncio
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 3G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 30s

@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceScriptor Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-elevated: #1a1a26;
+            --bg-input: #14141e;
+            --border: #252535;
+            --border-hover: #353548;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --text-muted: #5a5a70;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-glow: rgba(99,102,241,0.15);
+            --success: #22c55e;
+            --warn: #f59e0b;
+            --error: #ef4444;
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Layout */
+        .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(10,10,15,0.85);
+            backdrop-filter: blur(12px);
+        }
+        header .inner { display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            display: grid; place-items: center;
+            font-weight: 700; font-size: 13px; color: white;
+        }
+        .logo-text h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+        .logo-text span { font-size: 11px; color: var(--text-muted); }
+        .header-btn {
+            font-size: 13px; color: var(--text-secondary); background: none; border: 1px solid var(--border);
+            padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; transition: all .15s;
+            font-family: inherit;
+        }
+        .header-btn:hover { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-elevated); }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-top: 20px;
+        }
+
+        /* Inputs */
+        label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+        input, select {
+            width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px;
+            color: var(--text-primary); font-family: inherit; outline: none; transition: border .15s;
+        }
+        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        input::placeholder { color: var(--text-muted); }
+        input[type="password"] { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+        select { cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+        }
+
+        /* URL row */
+        .url-row { display: flex; gap: 10px; }
+        .url-row input { flex: 1; }
+
+        /* Settings grid */
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 18px; }
+
+        /* Mode toggle */
+        .mode-toggle {
+            display: inline-flex; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 2px; gap: 2px; width: 100%;
+        }
+        .mode-btn {
+            flex: 1; padding: 8px 6px; font-size: 12px; font-weight: 500;
+            border: none; border-radius: 4px; cursor: pointer; transition: all .15s;
+            background: transparent; color: var(--text-muted); font-family: inherit; white-space: nowrap;
+        }
+        .mode-btn.active { background: var(--accent); color: white; }
+        .mode-btn:hover:not(.active) { color: var(--text-primary); }
+
+        /* Preview */
+        .preview {
+            display: none; align-items: center; gap: 14px;
+            background: var(--bg-elevated); border-radius: var(--radius-sm);
+            padding: 12px; margin-top: 14px;
+        }
+        .preview.show { display: flex; animation: fadeIn .25s ease-out; }
+        .preview img { width: 110px; border-radius: 6px; flex-shrink: 0; }
+        .preview-info h3 { font-size: 14px; font-weight: 500; line-height: 1.3; }
+        .preview-info p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .preview-subs {
+            display: inline-block; font-size: 11px; padding: 3px 8px; margin-top: 6px;
+            border-radius: 4px; font-weight: 500;
+        }
+        .preview-subs.available { background: rgba(34,197,94,.12); color: var(--success); }
+        .preview-subs.unavailable { background: rgba(239,68,68,.1); color: var(--error); }
+
+        /* API rows */
+        .api-row { display: none; margin-top: 14px; }
+        .api-row.show { display: block; animation: fadeIn .2s ease-out; }
+        .api-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .api-hint.warn { color: var(--warn); }
+
+        /* Summary toggle */
+        .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+        .toggle {
+            position: relative; width: 40px; height: 22px; background: var(--bg-input);
+            border: 1px solid var(--border); border-radius: 11px; cursor: pointer; transition: all .2s;
+        }
+        .toggle::after {
+            content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+            background: var(--text-muted); border-radius: 50%; transition: all .2s;
+        }
+        .toggle.active { background: var(--accent); border-color: var(--accent); }
+        .toggle.active::after { left: 20px; background: white; }
+        .toggle-label { font-size: 13px; color: var(--text-secondary); }
+
+        /* Submit button */
+        .submit-btn {
+            width: 100%; margin-top: 20px; padding: 13px;
+            background: var(--accent); color: white; border: none; border-radius: var(--radius-sm);
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s;
+            font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .submit-btn:hover { background: var(--accent-hover); }
+        .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* Progress */
+        .progress-card { display: none; }
+        .progress-card.show { display: block; animation: fadeIn .25s; }
+        .progress-bar-track { width: 100%; height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; width: 0; }
+        .progress-text { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .pulse { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse 1.4s ease infinite; }
+
+        /* Result */
+        .result-card { display: none; }
+        .result-card.show { display: block; animation: fadeIn .3s; }
+        .result-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .result-title { font-size: 16px; font-weight: 600; }
+        .result-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        .export-btns { display: flex; gap: 6px; flex-shrink: 0; }
+        .export-btn {
+            padding: 5px 12px; font-size: 12px; font-weight: 500;
+            background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            color: var(--text-secondary); cursor: pointer; transition: all .15s; font-family: inherit;
+        }
+        .export-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-top: 16px; }
+        .tab {
+            padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+            color: var(--text-muted); border-bottom: 2px solid transparent; transition: all .15s;
+            background: none; border-top: none; border-left: none; border-right: none; font-family: inherit;
+        }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab:hover:not(.active) { color: var(--text-secondary); }
+
+        /* Tab panels */
+        .tab-panel { display: none; padding: 16px 0; }
+        .tab-panel.show { display: block; }
+        .full-text {
+            font-size: 14px; line-height: 1.75; color: var(--text-secondary);
+            max-height: 55vh; overflow-y: auto; white-space: pre-wrap;
+        }
+        .segment {
+            display: flex; gap: 12px; padding: 6px 8px; border-radius: var(--radius-sm);
+            transition: background .1s;
+        }
+        .segment:hover { background: var(--bg-elevated); }
+        .seg-time { font-size: 12px; color: var(--accent); white-space: nowrap; padding-top: 2px; font-family: 'JetBrains Mono', monospace; }
+        .seg-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        .summary-box {
+            font-size: 14px; line-height: 1.75; color: var(--text-secondary);
+            background: var(--bg-elevated); border-radius: var(--radius-sm);
+            padding: 16px; max-height: 55vh; overflow-y: auto; white-space: pre-wrap;
+        }
+
+        /* History */
+        .history-card { display: none; }
+        .history-card.show { display: block; animation: fadeIn .25s; }
+        .history-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; background: var(--bg-elevated); border-radius: var(--radius-sm);
+            margin-top: 6px;
+        }
+        .history-item-title { font-size: 13px; color: var(--text-primary); }
+        .history-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .history-links a {
+            font-size: 12px; color: var(--accent); text-decoration: none; margin-left: 10px;
+        }
+        .history-links a:hover { color: var(--accent-hover); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px;
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            padding: 10px 18px; border-radius: var(--radius-sm);
+            font-size: 13px; color: var(--text-primary);
+            box-shadow: 0 8px 32px rgba(0,0,0,.4);
+            transform: translateY(80px); opacity: 0; transition: all .25s;
+            z-index: 100;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .url-row { flex-direction: column; }
+            .settings-grid { grid-template-columns: 1fr; }
+            .result-header { flex-direction: column; }
+            .preview { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container inner">
+        <div class="logo">
+            <div class="logo-icon">VS</div>
+            <div class="logo-text">
+                <h1>VoiceScriptor Web</h1>
+                <span>YouTube Transkription · Self-Hosted</span>
+            </div>
+        </div>
+        <button class="header-btn" onclick="toggleHistory()">Verlauf</button>
+        <button class="header-btn" onclick="toggleLog()">Log</button>
+    </div>
+</header>
+
+<main class="container" style="padding-bottom: 60px;">
+
+    <!-- Input Card -->
+    <div class="card">
+        <label>YouTube-URL</label>
+        <div class="url-row">
+            <input id="urlInput" type="url" placeholder="https://www.youtube.com/watch?v=..."
+                   onpaste="setTimeout(fetchInfo, 200)">
+            <button class="header-btn" onclick="fetchInfo()" style="flex-shrink:0;">Info</button>
+        </div>
+
+        <!-- Preview -->
+        <div id="preview" class="preview">
+            <img id="prevThumb" src="" alt="">
+            <div class="preview-info">
+                <h3 id="prevTitle"></h3>
+                <p id="prevMeta"></p>
+                <span id="prevSubs" class="preview-subs"></span>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="settings-grid">
+            <div>
+                <label>Modus</label>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" onclick="setMode('auto',this)">⚡ Auto</button>
+                    <button class="mode-btn" onclick="setMode('local',this)">🔒 Lokal</button>
+                    <button class="mode-btn" onclick="setMode('api',this)">☁️ API</button>
+                    <button class="mode-btn" onclick="setMode('subs',this)">📜 Subs</button>
+                </div>
+            </div>
+            <div>
+                <label>Whisper-Modell</label>
+                <select id="modelSel">
+                    <option value="tiny">tiny — schnell</option>
+                    <option value="base" selected>base — gut</option>
+                    <option value="small">small — besser</option>
+                    <option value="medium">medium — sehr gut</option>
+                    <option value="large-v3">large-v3 — best</option>
+                </select>
+            </div>
+            <div>
+                <label>Sprache</label>
+                <select id="langSel">
+                    <option value="">Auto-Erkennung</option>
+                    <option value="de">Deutsch</option>
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                    <option value="it">Italiano</option>
+                    <option value="pt">Português</option>
+                    <option value="nl">Nederlands</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">中文</option>
+                    <option value="ko">한국어</option>
+                    <option value="ru">Русский</option>
+                    <option value="ar">العربية</option>
+                    <option value="tr">Türkçe</option>
+                    <option value="pl">Polski</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- OpenAI Whisper API Key -->
+        <div id="whisperApiRow" class="api-row">
+            <label>OpenAI API Key <span class="api-hint warn">⚠ Audio wird an OpenAI gesendet</span></label>
+            <input id="whisperKeyInput" type="password" placeholder="sk-...">
+        </div>
+
+        <!-- Summary toggle + LLM key -->
+        <div class="toggle-row">
+            <div class="toggle" id="summaryToggle" onclick="toggleSummary()"></div>
+            <span class="toggle-label">KI-Zusammenfassung</span>
+        </div>
+
+        <div id="llmApiRow" class="api-row">
+            <label>LLM API Key</label>
+            <input id="llmKeyInput" type="password" placeholder="API-Key für Zusammenfassung">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                <div>
+                    <label>API Base URL</label>
+                    <input id="llmBaseInput" type="url" placeholder="https://api.openai.com/v1" value="">
+                </div>
+                <div>
+                    <label>Modell</label>
+                    <input id="llmModelInput" type="text" placeholder="gpt-4o-mini" value="">
+                </div>
+            </div>
+            <p class="api-hint">Kompatibel mit OpenAI, Groq, Mistral, lokale LLMs — jede OpenAI-kompatible API.</p>
+        </div>
+
+        <button class="submit-btn" id="submitBtn" onclick="startTranscription()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            Transkribieren
+        </button>
+    </div>
+
+    <!-- Progress -->
+    <div id="progressCard" class="card progress-card">
+        <div class="progress-text">
+            <div class="pulse"></div>
+            <span id="progressText">Wird verarbeitet...</span>
+        </div>
+        <div class="progress-bar-track">
+            <div id="progressBar" class="progress-bar-fill"></div>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div id="resultCard" class="card result-card">
+        <div class="result-header">
+            <div>
+                <div class="result-title" id="resultTitle"></div>
+                <div class="result-meta" id="resultMeta"></div>
+            </div>
+            <div class="export-btns">
+                <button class="export-btn" onclick="copyText()">📋 Kopieren</button>
+                <button class="export-btn" onclick="dlFile('txt')">TXT</button>
+                <button class="export-btn" onclick="dlFile('srt')">SRT</button>
+                <button class="export-btn" onclick="dlFile('json')">JSON</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('text',this)">Volltext</button>
+            <button class="tab" onclick="showTab('segs',this)">Segmente</button>
+            <button class="tab" id="tabSummary" style="display:none" onclick="showTab('summary',this)">Zusammenfassung</button>
+        </div>
+
+        <div id="panelText" class="tab-panel show">
+            <div class="full-text" id="fullText"></div>
+        </div>
+        <div id="panelSegs" class="tab-panel">
+            <div id="segsList"></div>
+        </div>
+        <div id="panelSummary" class="tab-panel">
+            <div class="summary-box" id="summaryText"></div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div id="historyCard" class="card history-card">
+        <h3 style="font-size:15px; margin-bottom:10px;">Gespeicherte Transkripte</h3>
+        <div id="historyList"></div>
+    </div>
+
+
+    
+    <!-- Log -->
+    <div id="logCard" class="card history-card">
+        <h3 style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+            Aktivitaets-Log
+            <button onclick="clearLog()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">Leeren</button>
+        </h3>
+        <div id="logList" style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-secondary)"></div>
+    </div>
+
+    <!-- Cookie Upload + Verlauf -->
+    
+
+    
+    
+    <!-- Channel Videos -->
+    <section class="card" style="margin-top:20px">
+      <h3 style="margin-bottom:8px">Channel-Videos</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="channel-url" placeholder="YouTube Channel oder Video-URL eingeben..." style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+        <button onclick="loadChannelVideos()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;white-space:nowrap">Videos laden</button>
+      </div>
+      <div id="channel-videos" style="font-size:12px;color:var(--text-muted)"></div>
+      <div id="batch-controls" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
+        <button onclick="batchTranscribe()" style="padding:6px 16px;background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px">Ausgewaehlte transkribieren</button>
+        <button onclick="selectAllVideos(true)" style="padding:4px 10px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);cursor:pointer;font-size:11px">Alle</button>
+        <button onclick="selectAllVideos(false)" style="padding:4px 10px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);cursor:pointer;font-size:11px">Keine</button>
+        <span id="batch-status" style="font-size:11px;color:var(--text-muted);margin-left:auto"></span>
+      </div>
+    </section>
+
+    
+
+    
+    <!-- YouTube Cookies -->
+    <section class="card" style="margin-top:20px">
+      <h3 style="margin-bottom:10px;display:flex;align-items:center;gap:10px">
+        YouTube Cookies
+        <span id="cookie-badge" style="font-size:11px;padding:3px 10px;border-radius:12px;display:none"></span>
+      </h3>
+      <div id="cookie-status" style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Pruefe...</div>
+
+      <!-- Direct file upload -->
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">cookies.txt Datei hochladen:</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="file" id="cookie-file-direct" accept=".txt" style="font-size:11px;flex:1">
+          <button onclick="uploadCookieDirect()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px">Hochladen</button>
+        </div>
+      </div>
+
+      <!-- Direct paste -->
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">Oder cookies.txt Inhalt einfuegen (aus Chrome Extension "Get cookies.txt LOCALLY"):</label>
+        <textarea id="cookie-paste-direct" rows="3" placeholder="Cookie-Text hier einfuegen..." style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        <button onclick="saveCookieDirect()" style="margin-top:4px;padding:6px 14px;background:var(--success);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px">Speichern</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="autoHarvestCookies()" id="harvest-btn" style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500">&#127850; Auto-Harvest</button>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:4px">Anonyme Cookies (reicht nicht immer)</span>
+        <button onclick="showGoogleLogin()" style="padding:6px 14px;background:#4285f4;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500">&#x1F510; Google Login</button>
+        <button onclick="deleteCookiesAction()" style="padding:4px 10px;background:transparent;border:1px solid var(--error);color:var(--error);border-radius:var(--radius-sm);cursor:pointer;font-size:11px">Loeschen</button>
+        <span id="cookie-history-line" style="font-size:10px;color:var(--text-muted)"></span>
+      </div>
+    
+    <!-- Google Login Form -->
+    <div id="google-login-form" style="display:none;margin-top:12px;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:500;margin-bottom:8px">Google-Konto fuer YouTube-Cookies</div>
+      <input type="email" id="google-email" placeholder="deine@gmail.com" style="width:100%;padding:6px 10px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;margin-bottom:6px">
+      <input type="password" id="google-password" placeholder="Passwort" style="width:100%;padding:6px 10px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;margin-bottom:8px">
+      <div style="display:flex;gap:8px">
+        <button onclick="doGoogleLogin()" id="google-login-btn" style="padding:6px 16px;background:#4285f4;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px">Einloggen + Cookies holen</button>
+        <button onclick="hideGoogleLogin()" style="padding:6px 10px;background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);cursor:pointer;font-size:11px">Abbrechen</button>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Dein Passwort wird NICHT gespeichert — nur fuer den einmaligen Login im Headless Browser verwendet. Bei 2FA wird ein Hinweis angezeigt.</div>
+    </div>
+
+    </section>
+
+    </main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentMode = 'auto';
+let summaryActive = false;
+let currentResult = null;
+let currentFilename = null;
+
+// ── Mode ─────────────────────────────────────────────
+function setMode(mode, btn) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const whisperRow = document.getElementById('whisperApiRow');
+    const modelSel = document.getElementById('modelSel');
+    whisperRow.classList.toggle('show', mode === 'api');
+    modelSel.disabled = mode === 'api' || mode === 'subs';
+}
+
+// ── Summary Toggle ───────────────────────────────────
+function toggleSummary() {
+    summaryActive = !summaryActive;
+    document.getElementById('summaryToggle').classList.toggle('active', summaryActive);
+    document.getElementById('llmApiRow').classList.toggle('show', summaryActive);
+}
+
+// ── Fetch Info ───────────────────────────────────────
+async function fetchInfo() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    try {
+        const r = await fetch('/api/info', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url}),
+        });
+        if (!r.ok) throw new Error((await r.json()).detail);
+        const d = await r.json();
+        document.getElementById('prevThumb').src = d.thumbnail || '';
+        document.getElementById('prevTitle').textContent = d.title;
+        const dur = d.duration ? `${Math.floor(d.duration/60)}:${String(d.duration%60).padStart(2,'0')}` : '?';
+        document.getElementById('prevMeta').textContent = `${d.channel} · ${dur}` + (d.view_count ? ` · ${d.view_count.toLocaleString()} Aufrufe` : '');
+        const subs = document.getElementById('prevSubs');
+        if (d.has_subtitles) {
+            const langs = [...(d.subtitles_available?.manual || []), ...(d.subtitles_available?.auto || [])];
+            const unique = [...new Set(langs)].slice(0, 6).join(', ');
+            subs.textContent = `✓ Untertitel: ${unique}`;
+            subs.className = 'preview-subs available';
+        } else {
+            subs.textContent = '✗ Keine Untertitel verfügbar';
+            subs.className = 'preview-subs unavailable';
+        }
+        document.getElementById('preview').classList.add('show');
+    } catch (e) { toast('⚠️ ' + e.message); }
+}
+
+// ── Transcribe ───────────────────────────────────────
+async function startTranscription() {
+    var urlInput = document.getElementById('urlInput');
+    var url = urlInput ? urlInput.value.trim() : '';
+    if (!url) return toast('Bitte YouTube-URL eingeben');
+
+    var modeEl = document.querySelector('input[name="mode"]:checked');
+    var mode = modeEl ? modeEl.value : 'auto';
+    var sumEl = document.getElementById('autoSummary');
+    var autoSum = sumEl ? sumEl.checked : false;
+
+    showProgress('Verbinde mit YouTube...', 5);
+    var resultCard = document.getElementById('resultCard');
+    if (resultCard) resultCard.classList.remove('show');
+
+    addLog('Starte Transkription: ' + url);
+    addLog('Modus: ' + mode);
+
+    var pollId = setInterval(function() {
+        fetch('/api/progress/current').then(function(r){return r.json()}).then(function(p) {
+            if (p && p.step !== 'idle') {
+                setProgress(p.detail || p.step, p.pct || 0);
+                addLog(p.detail || p.step);
+            }
+        }).catch(function(){});
+    }, 2000);
+
+    try {
+        setProgress('Sende an Server...', 10);
+
+        var body = {url: url, mode: mode, model_size: 'base', language: '', auto_summary: autoSum};
+        var r = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+
+        clearInterval(pollId);
+
+        if (!r.ok) {
+            var errData = {};
+            try { errData = await r.json(); } catch(e) {}
+            var errMsg = errData.detail || errData.error || ('HTTP ' + r.status);
+            setProgress('Fehler!', 100);
+            addLog('FEHLER: ' + errMsg);
+            toast('Fehler: ' + errMsg);
+            return;
+        }
+
+        setProgress('Fertig!', 100);
+        var data = await r.json();
+        addLog('Transkription fertig: ' + (data.method || data.title || ''));
+        addLog('Dauer: ' + (data.transcript ? Math.round((data.transcript.duration||0)/60) + ' Min' : '?'));
+        showResult(data);
+        toast('Transkription abgeschlossen');
+
+    } catch(e) {
+        clearInterval(pollId);
+        setProgress('Netzwerk-Fehler', 100);
+        addLog('FEHLER: ' + e.message);
+        toast('Fehler: ' + e.message);
+    }
+}
+
+// ── Result Display ───────────────────────────────────
+function showResult(data) {
+    const t = data.transcript;
+    document.getElementById('resultTitle').textContent = data.title;
+
+    const modeLabels = { local: '🔒 Lokal', api: '☁️ API', youtube_subs: '📜 YouTube-Subs' };
+    const modeLabel = modeLabels[t.mode] || t.mode;
+    const dur = t.duration ? `${Math.floor(t.duration/60)}:${String(Math.floor(t.duration%60)).padStart(2,'0')}` : '?';
+    let meta = `${modeLabel} (${t.model}) · ${t.language || '?'} · ${dur} · ${(t.segments||[]).length} Segmente`;
+    if (t.sub_type) meta += ` · ${t.sub_type === 'manual' ? 'Manuell' : 'Auto-generiert'}`;
+    document.getElementById('resultMeta').textContent = meta;
+
+    document.getElementById('fullText').textContent = t.full_text;
+
+    const list = document.getElementById('segsList');
+    list.innerHTML = '';
+    (t.segments || []).forEach(s => {
+        const d = document.createElement('div');
+        d.className = 'segment';
+        d.innerHTML = `<span class="seg-time mono">${s.start_formatted}</span><span class="seg-text">${esc(s.text)}</span>`;
+        list.appendChild(d);
+    });
+
+    // Summary tab
+    const tabSum = document.getElementById('tabSummary');
+    if (data.summary && data.summary.summary) {
+        tabSum.style.display = '';
+        document.getElementById('summaryText').textContent = data.summary.summary;
+    } else {
+        tabSum.style.display = 'none';
+    }
+
+    document.getElementById('resultCard').classList.add('show');
+    showTab('text', document.querySelector('.tab'));
+}
+
+// ── Tabs ─────────────────────────────────────────────
+function showTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('show'));
+    btn.classList.add('active');
+    const map = { text: 'panelText', segs: 'panelSegs', summary: 'panelSummary' };
+    document.getElementById(map[name]).classList.add('show');
+}
+
+// ── Export ────────────────────────────────────────────
+function copyText() {
+    if (!currentResult) return;
+    navigator.clipboard.writeText(currentResult.transcript.full_text)
+        .then(() => toast('📋 Kopiert')).catch(() => toast('❌ Fehler'));
+}
+function dlFile(fmt) {
+    if (!currentFilename) return;
+    window.open(`/api/transcripts/${encodeURIComponent(currentFilename)}?format=${fmt}`, '_blank');
+}
+
+// ── History ──────────────────────────────────────────
+async function toggleHistory() {
+    const card = document.getElementById('historyCard');
+    if (card.classList.contains('show')) { card.classList.remove('show'); return; }
+    try {
+        const r = await fetch('/api/transcripts');
+        const data = await r.json();
+        const list = document.getElementById('historyList');
+        if (!data.length) { list.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Noch keine Transkripte.</p>'; }
+        else {
+            list.innerHTML = data.slice(0, 10).map(t => {
+                const dur = t.duration ? Math.round(t.duration/60) + ' Min' : '';
+                const title = t.title || t.filename.slice(13);
+                const channel = t.channel ? `<span style="color:var(--accent)">${esc(t.channel)}</span> · ` : '';
+                const method = t.method || t.mode || '?';
+                const date = t.created_at ? new Date(t.created_at).toLocaleDateString('de-DE') + ' ' + new Date(t.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : '';
+                const media = (t.media_files || []).map(f =>
+                    `<a href="${f.url}" download style="color:var(--success);text-decoration:none;font-size:10px" title="${f.size_mb} MB">&#128266; ${f.name.split('.').pop().toUpperCase()}</a>`
+                ).join(' ');
+                return `<div class="history-item" style="flex-direction:column;align-items:stretch;gap:4px">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div>
+                            <div class="history-item-title">${esc(title)}</div>
+                            <div class="history-item-meta">${channel}${method} · ${dur} · ${date}</div>
+                        </div>
+                        <button onclick="deleteTranscriptItem('${t.job_id || t.filename}')" style="background:none;border:1px solid var(--error);color:var(--error);border-radius:4px;padding:1px 6px;cursor:pointer;font-size:10px" title="Loeschen">&#10005;</button>
+                    </div>
+                    <div class="history-links" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                        <a href="/api/transcripts/${encodeURIComponent(t.filename)}?format=txt" download style="padding:1px 6px;border:1px solid var(--border);border-radius:3px">TXT</a>
+                        <a href="/api/transcripts/${encodeURIComponent(t.filename)}?format=srt" download style="padding:1px 6px;border:1px solid var(--border);border-radius:3px">SRT</a>
+                        ${t.has_timecoded_txt ? '<a href="' + t.tc_txt_url + '" download style="padding:1px 6px;border:1px solid var(--border);border-radius:3px;color:var(--success)">TXT+TC</a>' : ''}
+                        ${media}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        card.classList.add('show');
+    } catch(e) { console.error(e); toast('Verlauf laden fehlgeschlagen'); }
+}
+
+async function deleteTranscriptItem(id) {
+    if (!confirm('Transkript loeschen?')) return;
+    try {
+        await fetch('/api/transcripts/' + id, {method: 'DELETE'});
+        toggleHistory(); toggleHistory();
+    } catch(e) { toast('Loeschen fehlgeschlagen'); }
+}
+
+// ── Progress ─────────────────────────────────────────
+function showProgress(text, pct) {
+    document.getElementById('progressCard').classList.add('show');
+    document.getElementById('progressText').textContent = text;
+    document.getElementById('progressBar').style.width = pct + '%';
+}
+function setProgress(text, pct) {
+    document.getElementById('progressText').textContent = text;
+    document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ── Helpers ──────────────────────────────────────────
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Ctrl+Enter shortcut
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) startTranscription(); });
+
+
+
+
+
+
+
+
+
+
+
+// ══════════════════════════════════════════════════════
+// Cookie Management
+// ══════════════════════════════════════════════════════
+
+
+
+
+
+
+
+
+// ══════════════════════════════════════════════════════
+// Channel Videos + Batch Transcription
+// ══════════════════════════════════════════════════════
+
+
+
+
+
+
+
+
+// Init on page load
+
+
+// Close cookie modal on backdrop click
+
+
+
+
+// ══════════════════════════════════════════════════════
+// Cookie Management (Direct)
+// ══════════════════════════════════════════════════════
+async function uploadCookieDirect() {
+    var input = document.getElementById('cookie-file-direct');
+    if (!input || !input.files.length) { toast('Keine Datei ausgewaehlt'); return; }
+    var form = new FormData();
+    form.append('file', input.files[0]);
+    try {
+        var r = await fetch('/api/cookies/upload', {method: 'POST', body: form});
+        var d = await r.json();
+        if (d.ok) { toast('Cookies geladen! ' + d.entries + ' Eintraege'); refreshCookieStatus(); }
+        else toast('Fehler: ' + (d.detail || '?'));
+    } catch(e) { toast('Upload fehlgeschlagen'); }
+}
+
+async function saveCookieDirect() {
+    var text = document.getElementById('cookie-paste-direct').value.trim();
+    if (!text) { toast('Kein Text'); return; }
+    var resp;
+    if (text.indexOf('\t') >= 0 || text.indexOf('# ') === 0) {
+        var blob = new Blob([text], {type: 'text/plain'});
+        var form = new FormData();
+        form.append('file', blob, 'cookies.txt');
+        resp = await fetch('/api/cookies/upload', {method: 'POST', body: form});
+    } else {
+        resp = await fetch('/api/cookies/from-browser', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cookies: text})
+        });
+    }
+    var d = await resp.json();
+    if (d.ok) {
+        toast('Cookies gespeichert! ' + d.entries + ' Eintraege');
+    var pasteEl = document.getElementById('cookie-paste-direct');
+    if (pasteEl) { pasteEl.style.borderColor = '#22c55e'; pasteEl.placeholder = 'Gespeichert!'; setTimeout(function(){ pasteEl.style.borderColor = ''; pasteEl.placeholder = 'Cookie-Text hier einfuegen...'; }, 3000); }
+        document.getElementById('cookie-paste-direct').value = '';
+        refreshCookieStatus();
+    } else toast('Fehler: ' + (typeof d === 'object' ? JSON.stringify(d.detail || d.error || d) : d));
+}
+
+async function deleteCookiesAction() {
+    if (!confirm('Cookies loeschen?')) return;
+    await fetch('/api/cookies', {method: 'DELETE'});
+    toast('Cookies geloescht');
+    refreshCookieStatus();
+}
+
+async function refreshCookieStatus() {
+    try {
+        var r = await fetch('/api/cookies/status');
+        var d = await r.json();
+        var badge = document.getElementById('cookie-badge');
+        var statusEl = document.getElementById('cookie-status');
+        if (!badge) return;
+        if (d.exists) {
+            badge.textContent = 'AKTIV';
+            badge.style.display = 'inline';
+            badge.style.background = 'rgba(34,197,94,0.15)';
+            badge.style.color = '#22c55e';
+            statusEl.textContent = d.entries + ' Cookies aktiv' + (d.modified ? ' (zuletzt: ' + d.modified + ')' : '');
+        } else {
+            badge.textContent = 'FEHLT';
+            badge.style.display = 'inline';
+            badge.style.background = 'rgba(245,158,11,0.15)';
+            badge.style.color = '#f59e0b';
+            statusEl.textContent = 'Keine eingeloggten Cookies — Auto-Harvest reicht fuer manche Videos nicht';
+        }
+        var histEl = document.getElementById('cookie-history-line');
+        if (histEl) {
+            fetch('/api/cookies/history').then(function(r){return r.json()}).then(function(hist) {
+                if (hist.length) {
+                    var last = hist[hist.length-1];
+                    histEl.textContent = 'Letzter Import: ' + last.timestamp + ' (' + last.method + ')';
+                }
+            }).catch(function(){});
+        }
+    } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════
+// Channel Videos + Batch
+// ══════════════════════════════════════════════════════
+var channelVideoList = [];
+
+async function loadChannelVideos() {
+    var url = document.getElementById('channel-url').value.trim();
+    if (!url) return;
+    var el = document.getElementById('channel-videos');
+    el.innerHTML = '<span style="color:#6366f1">Lade Videos...</span>';
+    try {
+        var r = await fetch('/api/channel/videos', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: url, limit: 10})
+        });
+        var data = await r.json();
+        if (data.error) { el.innerHTML = '<span style="color:#ef4444">' + data.error + (data.detail ? '<br><small>' + data.detail + '</small>' : '') + '</span>'; return; }
+        channelVideoList = data.videos || [];
+        if (!channelVideoList.length) { el.innerHTML = 'Keine Videos gefunden'; return; }
+        var html = '<div style="margin-bottom:6px;font-size:11px;color:#8888a0">' + (data.channel || 'Channel') + ' \u2014 ' + channelVideoList.length + ' Videos</div>';
+        for (var i = 0; i < channelVideoList.length; i++) {
+            var v = channelVideoList[i];
+            var dur = v.duration ? Math.floor(v.duration/60) + ':' + String(Math.floor(v.duration%60)).padStart(2,'0') : '?';
+            html += '<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #252535;cursor:pointer">' +
+                '<input type="checkbox" class="vid-check" data-idx="' + i + '" checked style="margin-top:3px">' +
+                '<div style="flex:1"><div style="font-size:12px;color:#e8e8f0">' + esc(v.title) + '</div><div style="font-size:10px;color:#5a5a70">' + dur + '</div></div>' +
+                '<a href="' + v.url + '" target="_blank" style="color:#6366f1;font-size:10px;text-decoration:none">\u2197</a></label>';
+        }
+        el.innerHTML = html;
+        document.getElementById('batch-controls').style.display = 'flex';
+    } catch(e) { el.innerHTML = '<span style="color:#ef4444">Fehler: ' + e + '</span>'; }
+}
+
+function selectAllVideos(checked) {
+    var cbs = document.querySelectorAll('.vid-check');
+    for (var i = 0; i < cbs.length; i++) cbs[i].checked = checked;
+}
+
+async function batchTranscribe() {
+    var selected = [];
+    var cbs = document.querySelectorAll('.vid-check:checked');
+    for (var i = 0; i < cbs.length; i++) selected.push(channelVideoList[parseInt(cbs[i].dataset.idx)]);
+    if (!selected.length) return alert('Keine Videos ausgewaehlt');
+    var statusEl = document.getElementById('batch-status');
+    for (var i = 0; i < selected.length; i++) {
+        var v = selected[i];
+        statusEl.textContent = (i+1) + '/' + selected.length + ': ' + v.title.slice(0, 40) + '...';
+        showProgress('Batch ' + (i+1) + '/' + selected.length, Math.round((i/selected.length)*100));
+        try {
+            await fetch('/api/transcribe', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: v.url, mode: 'auto', auto_summary: false})
+            });
+        } catch(e) { statusEl.textContent = 'Fehler bei: ' + v.title.slice(0, 30); }
+    }
+    statusEl.textContent = 'Fertig! ' + selected.length + ' transkribiert';
+}
+
+window.addEventListener('load', refreshCookieStatus);
+
+
+
+// ══════════════════════════════════════════════════════
+// Activity Log
+// ══════════════════════════════════════════════════════
+var logEntries = [];
+
+function addLog(msg) {
+    var ts = new Date().toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    logEntries.push('[' + ts + '] ' + msg);
+    if (logEntries.length > 100) logEntries = logEntries.slice(-100);
+    var el = document.getElementById('logList');
+    if (el && document.getElementById('logCard').classList.contains('show')) {
+        el.innerHTML = logEntries.slice().reverse().map(function(l) {
+            var color = l.indexOf('FEHLER') >= 0 ? '#ef4444' : l.indexOf('Fertig') >= 0 ? '#22c55e' : '#8888a0';
+            return '<div style="padding:2px 0;color:' + color + '">' + l + '</div>';
+        }).join('');
+    }
+}
+
+function toggleLog() {
+    var card = document.getElementById('logCard');
+    if (card.classList.contains('show')) {
+        card.classList.remove('show');
+    } else {
+        card.classList.add('show');
+        var el = document.getElementById('logList');
+        el.innerHTML = logEntries.slice().reverse().map(function(l) {
+            var color = l.indexOf('FEHLER') >= 0 ? '#ef4444' : l.indexOf('Fertig') >= 0 ? '#22c55e' : '#8888a0';
+            return '<div style="padding:2px 0;color:' + color + '">' + l + '</div>';
+        }).join('');
+        if (!logEntries.length) el.innerHTML = '<div style="color:#5a5a70">Noch keine Eintraege</div>';
+    }
+}
+
+function clearLog() {
+    logEntries = [];
+    document.getElementById('logList').innerHTML = '<div style="color:#5a5a70">Log geleert</div>';
+}
+
+
+
+// ══════════════════════════════════════════════════════
+// Auto-Harvest + Session Keep-Alive
+// ══════════════════════════════════════════════════════
+var harvestInterval = null;
+var lastInteraction = Date.now();
+
+async function autoHarvestCookies() {
+    var btn = document.getElementById('harvest-btn');
+    if (btn) { btn.textContent = 'Harvesting...'; btn.disabled = true; }
+    addLog('Auto-Harvest gestartet (Headless Firefox)...');
+    toast('Cookie-Harvest laeuft... (15-30 Sek)');
+    try {
+        var r = await fetch('/api/cookies/harvest', {method: 'POST'});
+        var d = await r.json();
+        if (r.ok) {
+            addLog('Auto-Harvest OK: ' + d.cookie_count + ' Cookies');
+            toast('Cookies geharvested! ' + d.cookie_count + ' Eintraege');
+            refreshCookieStatus();
+        } else {
+            addLog('Auto-Harvest FEHLER: ' + (d.detail || d.message || '?'));
+            toast('Harvest fehlgeschlagen: ' + (d.detail || '?'));
+        }
+    } catch(e) {
+        addLog('Auto-Harvest Netzwerk-Fehler: ' + e.message);
+        toast('Harvest-Fehler: ' + e.message);
+    }
+    if (btn) { btn.textContent = '\ud83c\udf6a Auto-Harvest'; btn.disabled = false; }
+}
+
+// Track user interaction
+document.addEventListener('click', function() { lastInteraction = Date.now(); });
+document.addEventListener('keydown', function() { lastInteraction = Date.now(); });
+
+// On login/page load: harvest if cookies are missing or old, repeat every 10 min
+async function startCookieKeepAlive() {
+    // Check if cookies exist
+    try {
+        var r = await fetch('/api/cookies/status');
+        var d = await r.json();
+        if (!d.exists) {
+            addLog('Keine Cookies — starte Auto-Harvest...');
+            await autoHarvestCookies();
+        }
+    } catch(e) {}
+
+    // Repeat every 10 minutes if user is active
+    harvestInterval = setInterval(async function() {
+        var idleMinutes = (Date.now() - lastInteraction) / 60000;
+        if (idleMinutes > 60) {
+            addLog('Session inaktiv (>60 Min) — Harvest pausiert');
+            return;
+        }
+        addLog('Cookie-Refresh (10-Min-Intervall)...');
+        await autoHarvestCookies();
+    }, 600000); // 10 Minuten
+}
+
+// Start keep-alive on page load
+window.addEventListener('load', function() {
+    setTimeout(startCookieKeepAlive, 5000); // 5s nach Login
+});
+
+
+// Google Login
+function showGoogleLogin() {
+    var el = document.getElementById('google-login-form');
+    if (el) el.style.display = 'block';
+}
+function hideGoogleLogin() {
+    var el = document.getElementById('google-login-form');
+    if (el) el.style.display = 'none';
+}
+    btn.textContent = 'Einloggen + Cookies holen';
+    btn.disabled = false;
+
+async function logoutCookies() {
+    if (!confirm('Google-Session beenden und Cookies loeschen?')) return;
+    await fetch('/api/cookies', {method: 'DELETE'});
+    addLog('Google Logout - Cookies geloescht');
+    toast('Ausgeloggt - Cookies geloescht');
+    refreshCookieStatus();
+}
+
+
+// Google Login with 2FA
+async function doGoogleLogin() {
+    var email = document.getElementById('google-email').value.trim();
+    var pw = document.getElementById('google-password').value;
+    if (!email || !pw) { toast('Email und Passwort eingeben'); return; }
+    var btn = document.getElementById('google-login-btn');
+    btn.textContent = 'Logge ein... (30s)';
+    btn.disabled = true;
+    addLog('Google Login: ' + email);
+
+    try {
+        var r = await fetch('/api/cookies/google-login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email: email, password: pw})
+        });
+        var d = await r.json();
+
+        if (d.status === 'ok') {
+            addLog('Google Login OK: ' + d.cookie_count + ' Cookies');
+            toast('Eingeloggt! ' + d.cookie_count + ' Cookies');
+            hideGoogleLogin();
+            hide2FA();
+            refreshCookieStatus();
+            document.getElementById('google-password').value = '';
+        } else if (d.status === '2fa_required') {
+            addLog('2FA: ' + d.message);
+            show2FA(d.screenshot, d.message);
+        } else {
+            addLog('Google FEHLER: ' + (d.detail || d.message || '?'));
+            toast('Fehler: ' + (d.detail || d.message || '?'));
+        }
+    } catch(e) {
+        addLog('Fehler: ' + e.message);
+        toast('Fehler: ' + e.message);
+    }
+    btn.textContent = 'Einloggen + Cookies holen';
+    btn.disabled = false;
+}
+
+function show2FA(screenshotBase64, hint) {
+    var container = document.getElementById('google-login-form');
+    var twofa = document.getElementById('twofa-section');
+    if (!twofa) {
+        twofa = document.createElement('div');
+        twofa.id = 'twofa-section';
+        twofa.style.cssText = 'margin-top:12px;padding:12px;background:#1a1a26;border:1px solid #4285f4;border-radius:8px';
+        container.appendChild(twofa);
+    }
+    var imgHtml = screenshotBase64 ? '<img src="data:image/png;base64,' + screenshotBase64 + '" style="width:100%;border-radius:6px;margin-bottom:8px;border:1px solid #252535">' : '';
+    twofa.innerHTML = imgHtml +
+        '<div style="font-size:12px;color:#f59e0b;margin-bottom:8px">' + (hint || '2FA erforderlich') + '</div>' +
+        '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+            '<input type="text" id="twofa-code" placeholder="6-stelliger Code" style="flex:1;padding:6px 10px;background:#14141e;color:#e8e8f0;border:1px solid #252535;border-radius:6px;font-size:14px;letter-spacing:4px;text-align:center">' +
+            '<button onclick="submit2FA()" style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Senden</button>' +
+        '</div>' +
+        '<button onclick="waitForPhone()" style="padding:4px 10px;background:transparent;border:1px solid #4285f4;color:#4285f4;border-radius:6px;cursor:pointer;font-size:11px">Warte auf Handy-Bestaetigung...</button>';
+    twofa.style.display = 'block';
+}
+
+function hide2FA() {
+    var el = document.getElementById('twofa-section');
+    if (el) el.style.display = 'none';
+}
+
+async function submit2FA() {
+    var code = document.getElementById('twofa-code').value.trim();
+    if (!code) return;
+    addLog('2FA Code gesendet...');
+    toast('Pruefe Code...');
+    try {
+        var r = await fetch('/api/cookies/google-2fa', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({code: code, action: 'code'})
+        });
+        var d = await r.json();
+        if (d.status === 'ok') {
+            addLog('2FA OK! ' + d.cookie_count + ' Cookies');
+            toast('Eingeloggt! ' + d.cookie_count + ' Cookies');
+            hideGoogleLogin();
+            hide2FA();
+            refreshCookieStatus();
+        } else if (d.status === '2fa_required') {
+            show2FA(d.screenshot, d.message);
+        } else {
+            addLog('2FA Fehler: ' + (d.message || '?'));
+            toast('Fehler: ' + (d.message || '?'));
+        }
+    } catch(e) { toast('Fehler: ' + e.message); }
+}
+
+async function waitForPhone() {
+    addLog('Warte auf Handy-Bestaetigung (max 60s)...');
+    toast('Bestaetigung auf dem Handy abwarten...');
+    try {
+        var r = await fetch('/api/cookies/google-2fa', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'phone'})
+        });
+        var d = await r.json();
+        if (d.status === 'ok') {
+            addLog('Handy-Bestaetigung OK! ' + d.cookie_count + ' Cookies');
+            toast('Eingeloggt!');
+            hideGoogleLogin();
+            hide2FA();
+            refreshCookieStatus();
+        } else {
+            show2FA(d.screenshot, d.message);
+        }
+    } catch(e) { toast('Fehler: ' + e.message); }
+}
+
+<</script>
+</body></html>

@@ -1,0 +1,9 @@
+data/
+.env
+__pycache__/
+*.pyc
+*.tar.gz
+*.zip
+node_modules/
+ADMIN_CREDENTIALS.txt
+INITIAL_CREDENTIALS.txt

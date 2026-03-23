@@ -1,0 +1,7 @@
+data/downloads/
+data/transcripts/
+data/models/
+.env
+__pycache__/
+*.pyc
+*.pyo
