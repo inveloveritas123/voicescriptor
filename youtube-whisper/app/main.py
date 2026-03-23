@@ -1,35 +1,18 @@
-"""VoiceScriptor Web — YouTube Transkription als Self-Hosted Webapp."""
+"""VoiceScriptor Web -- YouTube Transkription als Self-Hosted Webapp."""
 
 import asyncio
+import base64
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, Request, Response
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.api.routes import router as api_router
 from app.bot.telegram import create_bot_app
+from app.auth import verify_password
 
-
-# ── Basic Auth ──────────────────────────────────────────
-import secrets
-from fastapi import Depends, Request, Response
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-
-security = HTTPBasic()
-AUTH_USER = "robert"
-AUTH_PASS = "!BesterMann1234"
-
-def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_user = secrets.compare_digest(credentials.username, AUTH_USER)
-    correct_pass = secrets.compare_digest(credentials.password, AUTH_PASS)
-    if not (correct_user and correct_pass):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=401, detail="Unauthorized",
-                           headers={"WWW-Authenticate": "Basic"})
-    return credentials.username
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,18 +25,17 @@ _bot_app = None
 _bot_task = None
 
 
-
-
 async def cleanup_old_downloads():
     """Delete old files based on retention settings."""
-    import os, time
+    import os
+    import time
     from pathlib import Path
     try:
         from app.services.settings_service import get_setting
         audio_hours = get_setting("retention.audio_hours", 24)
-        transcript_days = get_setting("retention.transcripts_days", 30)
+        transcript_days = get_setting("retention.transcripts_days", 90)
     except Exception:
-        audio_hours, transcript_days = 24, 30
+        audio_hours, transcript_days = 24, 90
     now = time.time()
     # Audio cleanup
     dl_dir = Path("/app/data/downloads")
@@ -61,14 +43,15 @@ async def cleanup_old_downloads():
         for f in dl_dir.iterdir():
             if f.is_file() and (now - f.stat().st_mtime) > audio_hours * 3600:
                 f.unlink()
-                logger.info(f"Cleanup: {f.name} (>{audio_hours}h)")
+                logger.info("Cleanup: %s (>%dh)", f.name, audio_hours)
     # Transcript cleanup
     tr_dir = Path("/app/data/transcripts")
     if tr_dir.exists():
         for f in tr_dir.iterdir():
             if f.is_file() and (now - f.stat().st_mtime) > transcript_days * 86400:
                 f.unlink()
-                logger.info(f"Cleanup: {f.name} (>{transcript_days}d)")
+                logger.info("Cleanup: %s (>%dd)", f.name, transcript_days)
+
 
 async def _cleanup_loop():
     """Run cleanup every hour."""
@@ -77,7 +60,8 @@ async def _cleanup_loop():
         try:
             await cleanup_old_downloads()
         except Exception as e:
-            logger.warning(f"Cleanup error: {e}")
+            logger.warning("Cleanup error: %s", e)
+
 
 async def _run_telegram_bot():
     """Startet Telegram-Bot als Background-Task."""
@@ -90,15 +74,14 @@ async def _run_telegram_bot():
         await _bot_app.initialize()
         await _bot_app.start()
         await _bot_app.updater.start_polling(drop_pending_updates=True)
-        logger.info("Telegram-Bot läuft")
+        logger.info("Telegram-Bot laeuft")
 
-        # Endlos laufen lassen
         while True:
             await asyncio.sleep(3600)
     except asyncio.CancelledError:
         logger.info("Telegram-Bot wird gestoppt...")
     except Exception as e:
-        logger.error(f"Telegram-Bot Fehler: {e}")
+        logger.error("Telegram-Bot Fehler: %s", e)
     finally:
         if _bot_app:
             try:
@@ -113,19 +96,36 @@ async def _run_telegram_bot():
 async def lifespan(app: FastAPI):
     global _bot_task
 
+    # Migrate legacy settings on startup
+    try:
+        from app.services.settings_service import load_settings, save_settings
+        from app.auth import migrate_to_bcrypt
+        s = load_settings()
+        if migrate_to_bcrypt(s):
+            save_settings(s)
+            logger.info("Passwoerter zu bcrypt migriert")
+    except Exception as e:
+        logger.warning("Settings migration: %s", e)
+
     logger.info("VoiceScriptor Web gestartet")
-    logger.info(f"  Whisper-Modell: {settings.whisper_model}")
-    logger.info(f"  Telegram-Bot:   {'aktiv' if settings.telegram_bot_token else 'deaktiviert'}")
-    logger.info(f"  LLM-Summary:    {'aktiv' if settings.llm_api_key else 'deaktiviert'}")
+    logger.info("  Whisper-Modell: %s", settings.whisper_model)
+
+    # Telegram-Bot Token aus Settings oder .env
+    tg_token = ""
+    try:
+        from app.services.settings_service import get_setting
+        tg_token = get_setting("telegram.bot_token", "") or settings.telegram_bot_token
+    except Exception:
+        tg_token = settings.telegram_bot_token
+    logger.info("  Telegram-Bot:   %s", "aktiv" if tg_token else "deaktiviert")
 
     # Telegram-Bot als Background-Task starten
-    if settings.telegram_bot_token:
+    if tg_token:
         _bot_task = asyncio.create_task(_run_telegram_bot())
     _cleanup_task = asyncio.create_task(_cleanup_loop())
 
     yield
 
-    # Cleanup
     if _bot_task:
         _bot_task.cancel()
         try:
@@ -138,34 +138,47 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="VoiceScriptor Web",
-    version="2.0.0",
+    version="4.0.0",
     lifespan=lifespan,
 )
 
+
+# Auth-Pfade die KEIN Login brauchen
+NO_AUTH_PATHS = {"/api/health"}
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    """Require Basic Auth for all routes except /api/health."""
-    if request.url.path in ("/api/health",):
+    """Require Basic Auth for all routes except health."""
+    if request.url.path in NO_AUTH_PATHS:
         return await call_next(request)
-    auth = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Basic "):
-        return Response("Unauthorized", status_code=401,
-                       headers={"WWW-Authenticate": 'Basic realm="VoiceScriptor"'})
-    import base64
+
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Basic "):
+        return Response(
+            "Unauthorized", status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="VoiceScriptor"'},
+        )
+
     try:
         from app.services.settings_service import load_settings
-        settings = load_settings()
-        decoded = base64.b64decode(auth[6:]).decode()
+        s = load_settings()
+        decoded = base64.b64decode(auth_header[6:]).decode()
         user, pwd = decoded.split(":", 1)
-        expected_user = settings.get("auth", {}).get("username", "robert")
-        expected_pwd = settings.get("auth", {}).get("password", "")
-        if user != expected_user or pwd != expected_pwd:
-            raise ValueError()
-    except (ValueError, KeyError):
-        return Response("Unauthorized", status_code=401,
-                       headers={"WWW-Authenticate": 'Basic realm="VoiceScriptor"'})
-    return await call_next(request)
 
+        expected_user = s.get("auth", {}).get("username", "robert")
+        expected_pwd = s.get("auth", {}).get("password", "")
+
+        if user != expected_user or not verify_password(pwd, expected_pwd):
+            raise ValueError("Invalid credentials")
+
+    except (ValueError, KeyError):
+        return Response(
+            "Unauthorized", status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="VoiceScriptor"'},
+        )
+
+    return await call_next(request)
 
 
 app.include_router(api_router)

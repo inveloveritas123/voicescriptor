@@ -3,26 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VoiceScriptor Web</title>
+<title>VoiceScriptor Web v4</title>
 <style>
 :root{--bg:#0a0a0f;--card:#12121a;--elev:#1a1a26;--input:#14141e;--border:#252535;--text:#e8e8f0;--muted:#5a5a70;--sec:#8888a0;--accent:#6366f1;--green:#22c55e;--warn:#f59e0b;--err:#ef4444;--r:10px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.container{max-width:860px;margin:0 auto;padding:0 16px}
-header{border-bottom:1px solid var(--border);padding:12px 0;position:sticky;top:0;z-index:50;background:rgba(10,10,15,.9);backdrop-filter:blur(8px)}
+.container{max-width:900px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--border);padding:12px 0;position:sticky;top:0;z-index:50;background:rgba(10,10,15,.95);backdrop-filter:blur(8px)}
 header .inner{display:flex;align-items:center;justify-content:space-between}
 h1{font-size:18px;font-weight:600}
+h1 span{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
 .hbtn{padding:6px 12px;background:var(--elev);border:1px solid var(--border);border-radius:6px;color:var(--sec);cursor:pointer;font-size:11px}
 .hbtn:hover{color:var(--text);border-color:var(--accent)}
+.hbtn.active{border-color:var(--accent);color:var(--accent)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:16px}
 .card h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-input[type=text],input[type=url],input[type=email],input[type=password],textarea,select{width:100%;padding:8px 10px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:6px}
+input[type=text],input[type=url],input[type=email],input[type=password],input[type=number],textarea,select{width:100%;padding:8px 10px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:6px}
 textarea{font-family:monospace;font-size:11px;resize:vertical}
-.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .2s}
+.btn:hover{opacity:.85}
 .btn-accent{background:var(--accent);color:#fff}
 .btn-green{background:var(--green);color:#fff}
 .btn-blue{background:#4285f4;color:#fff}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--sec)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
 .btn-err{background:transparent;border:1px solid var(--err);color:var(--err)}
 .btn-sm{padding:4px 10px;font-size:11px}
 .badge{font-size:10px;padding:2px 8px;border-radius:10px;display:inline-block}
@@ -31,15 +35,23 @@ textarea{font-family:monospace;font-size:11px;resize:vertical}
 .hidden{display:none!important}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;background:var(--card);border:1px solid var(--accent);border-radius:8px;font-size:12px;z-index:999;opacity:0;transition:opacity .3s}
 .toast.show{opacity:1}
-.hist-item{padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px}
+.hist-item{padding:10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px}
 a{color:var(--accent);text-decoration:none}
 a:hover{color:#818cf8}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s}
+.drop-zone.over{border-color:var(--accent);color:var(--accent)}
+.settings-section{border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px}
+.settings-section b{color:var(--accent);font-size:12px}
+.settings-section label{font-size:10px;color:var(--muted);display:block;margin-top:4px}
+.settings-section input,.settings-section select{padding:4px 8px;font-size:12px;margin-bottom:2px}
+.flex-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+@media(max-width:600px){.container{padding:0 8px} .card{padding:12px}}
 </style>
 </head>
 <body>
 <header><div class="container inner">
-  <h1>VoiceScriptor</h1>
-  <div style="display:flex;gap:6px">
+  <h1>VoiceScriptor <span>v4</span></h1>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
     <button class="hbtn" onclick="togglePanel('history')">Verlauf</button>
     <button class="hbtn" onclick="togglePanel('log')">Log</button>
     <button class="hbtn" onclick="openSettings()">Settings</button>
@@ -51,15 +63,15 @@ a:hover{color:#818cf8}
 <!-- Transcribe -->
 <div class="card">
   <h3>YouTube transkribieren</h3>
-  <input type="url" id="url" placeholder="https://youtube.com/watch?v=...">
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <input type="url" id="url" placeholder="https://youtube.com/watch?v=... (mehrere mit ; trennen)">
+  <div class="flex-row">
     <label style="font-size:12px;color:var(--sec)"><input type="radio" name="mode" value="auto" checked> Auto</label>
     <label style="font-size:12px;color:var(--sec)"><input type="radio" name="mode" value="local"> Whisper</label>
     <label style="font-size:12px;color:var(--sec)"><input type="radio" name="mode" value="subs"> Nur Subs</label>
     <label style="font-size:12px;color:var(--sec);margin-left:auto"><input type="checkbox" id="autoSum"> KI-Summary</label>
   </div>
   <div style="margin-top:8px;display:flex;gap:8px">
-    <button class="btn btn-accent" onclick="doTranscribe()">Transkribieren</button>
+    <button class="btn btn-accent" onclick="doTranscribe()" id="transcribeBtn">Transkribieren</button>
     <button class="btn btn-outline btn-sm" onclick="doInfo()">Info</button>
   </div>
   <div id="progress" class="hidden" style="margin-top:10px">
@@ -68,21 +80,47 @@ a:hover{color:#818cf8}
   </div>
 </div>
 
+<!-- Audio Upload -->
+<div class="card">
+  <h3>Audio hochladen</h3>
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('audioFiles').click()">
+    Dateien hierher ziehen oder klicken<br>
+    <span style="font-size:10px">.ogg .opus .mp3 .m4a .wav .webm .flac (WhatsApp etc.)</span>
+  </div>
+  <input type="file" id="audioFiles" accept=".ogg,.opus,.mp3,.m4a,.wav,.webm,.flac,.aac" multiple style="display:none">
+  <div id="uploadList" style="margin-top:8px;font-size:12px"></div>
+  <div id="uploadBtn" class="hidden" style="margin-top:8px">
+    <button class="btn btn-green" onclick="uploadAll()">Alle transkribieren</button>
+  </div>
+</div>
+
 <!-- Result -->
 <div id="result" class="card hidden">
   <h3 id="resTitle">Ergebnis</h3>
   <div id="resMeta" style="font-size:11px;color:var(--sec);margin-bottom:8px"></div>
-  <div style="display:flex;gap:6px;margin-bottom:8px">
+  <div class="flex-row" style="margin-bottom:8px">
     <button class="btn btn-sm btn-outline" onclick="copyResult()">Kopieren</button>
     <button class="btn btn-sm btn-outline" onclick="showTab('text')">Text</button>
     <button class="btn btn-sm btn-outline" onclick="showTab('srt')">SRT</button>
+    <select id="reportStyle" style="width:auto;padding:3px 6px;font-size:11px;margin:0">
+      <option value="executive">Executive Summary</option>
+      <option value="detailed">Ausfuehrlich</option>
+      <option value="newsletter">Newsletter</option>
+    </select>
+    <button class="btn btn-sm btn-accent" onclick="genReport()">Report</button>
+    <button class="btn btn-sm btn-green" onclick="pushNextcloud()">Nextcloud</button>
   </div>
   <pre id="resText" style="background:var(--input);padding:12px;border-radius:6px;font-size:12px;max-height:400px;overflow-y:auto;white-space:pre-wrap;line-height:1.5"></pre>
 </div>
 
 <!-- History -->
 <div id="history" class="card hidden">
-  <h3>Verlauf (letzte 10)</h3>
+  <h3>Verlauf
+    <span style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-sm btn-outline" onclick="exportZip(false)">ZIP (Texte)</button>
+      <button class="btn btn-sm btn-outline" onclick="exportZip(true)">ZIP (mit Audio)</button>
+    </span>
+  </h3>
   <div id="histList"></div>
 </div>
 
@@ -112,54 +150,29 @@ a:hover{color:#818cf8}
 <div class="card">
   <h3>YouTube Cookies <span id="cookieBadge" class="badge"></span></h3>
   <div id="cookieStatus" style="font-size:12px;color:var(--sec);margin-bottom:8px">Pruefe...</div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-    <button class="btn btn-green btn-sm" onclick="doHarvest()">&#127850; Auto-Harvest</button>
-    <button class="btn btn-blue btn-sm" onclick="togglePanel('glogin')">&#128274; Google Login</button>
+  <div class="flex-row" style="margin-bottom:10px">
     <button class="btn btn-err btn-sm" onclick="doCookieDelete()">Loeschen</button>
-    <button class="btn btn-outline btn-sm" onclick="doCookieLogout()">Logout</button>
   </div>
-
-  <!-- File Upload -->
   <div style="margin-bottom:8px">
     <label style="font-size:11px;color:var(--muted)">cookies.txt hochladen:</label>
     <div style="display:flex;gap:6px"><input type="file" id="cookieFile" accept=".txt" style="font-size:11px;flex:1;padding:4px"><button class="btn btn-accent btn-sm" onclick="uploadCookieFile()">Upload</button></div>
   </div>
-  <!-- Paste -->
   <div style="margin-bottom:8px">
     <label style="font-size:11px;color:var(--muted)">Oder Cookie-Text einfuegen:</label>
     <textarea id="cookiePaste" rows="2" placeholder="Cookie-Text hier..."></textarea>
     <button class="btn btn-green btn-sm" onclick="saveCookiePaste()">Speichern</button>
   </div>
   <div id="cookieHist" style="font-size:10px;color:var(--muted)"></div>
-
-  <!-- Google Login Form -->
-  <div id="glogin" class="hidden" style="margin-top:10px;padding:10px;border:1px solid #4285f4;border-radius:8px;background:var(--elev)">
-    <div style="font-size:12px;font-weight:500;margin-bottom:6px">Google-Login fuer YouTube</div>
-    <input type="email" id="gEmail" placeholder="deine@gmail.com">
-    <input type="password" id="gPass" placeholder="Passwort">
-    <div style="display:flex;gap:6px">
-      <button class="btn btn-blue btn-sm" id="gLoginBtn" onclick="doGoogleLogin()">Einloggen</button>
-      <button class="btn btn-outline btn-sm" onclick="togglePanel('glogin')">Abbrechen</button>
-    </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">Passwort wird NICHT gespeichert</div>
-    <div id="tfaBox" class="hidden" style="margin-top:8px;padding:8px;border:1px solid var(--warn);border-radius:6px">
-      <img id="tfaImg" style="width:100%;border-radius:4px;margin-bottom:6px;display:none">
-      <div id="tfaHint" style="font-size:12px;color:var(--warn);margin-bottom:6px"></div>
-      <div style="display:flex;gap:6px">
-        <input type="text" id="tfaCode" placeholder="6-stelliger Code" style="font-size:16px;text-align:center;letter-spacing:4px;flex:1">
-        <button class="btn btn-green btn-sm" onclick="submit2fa()">Senden</button>
-      </div>
-      <button class="btn btn-outline btn-sm" onclick="waitPhone()" style="margin-top:4px">Warte auf Handy...</button>
-    </div>
-  </div>
 </div>
 
-
+<!-- Settings -->
 <div id="settingsPanel" class="card hidden">
   <h3>Einstellungen <button class="btn btn-sm btn-outline" onclick="document.getElementById('settingsPanel').classList.add('hidden')" style="margin-left:auto">X</button></h3>
   <div id="settingsBody" style="font-size:12px">Lade...</div>
-  <button class="btn btn-accent" onclick="doSaveSettings()" style="margin-top:10px">Speichern</button>
-  <span id="svd" style="font-size:11px;color:var(--green);margin-left:8px;opacity:0">Gespeichert!</span>
+  <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+    <button class="btn btn-accent" onclick="doSaveSettings()">Speichern</button>
+    <span id="svd" style="font-size:11px;color:var(--green);opacity:0;transition:opacity .3s">Gespeichert!</span>
+  </div>
 </div>
 
 </main>
@@ -170,20 +183,24 @@ a:hover{color:#818cf8}
 var currentResult = null;
 var logEntries = [];
 var chVideos = [];
+var pendingFiles = [];
 
-// ═══ Helpers ═══
 function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function addLog(m){var ts=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});logEntries.push("["+ts+"] "+m);if(logEntries.length>100)logEntries=logEntries.slice(-100);renderLog()}
 function renderLog(){var el=document.getElementById("logList");if(!el)return;el.innerHTML=logEntries.slice().reverse().map(function(l){var c=l.indexOf("FEHLER")>=0?"var(--err)":l.indexOf("OK")>=0?"var(--green)":"var(--sec)";return"<div style='padding:1px 0;color:"+c+"'>"+esc(l)+"</div>"}).join("")}
-function togglePanel(id){var el=document.getElementById(id);if(!el)return;el.classList.toggle("hidden");if(!el.classList.contains("hidden")){if(id==="history")loadHistory();if(id==="log")renderLog()}}
+function togglePanel(id){var el=document.getElementById(id);if(!el)return;el.classList.toggle("hidden");if(!el.classList.contains("hidden")&&id==="history")loadHistory()}
 function showProg(t,p){document.getElementById("progress").classList.remove("hidden");document.getElementById("progText").textContent=t;document.getElementById("progBar").style.width=p+"%"}
 function hideProg(){document.getElementById("progress").classList.add("hidden")}
 
-// ═══ Transcribe ═══
+// === Transcribe ===
 async function doTranscribe(){
-  var url=document.getElementById("url").value.trim();
-  if(!url){toast("URL eingeben");return}
+  var raw=document.getElementById("url").value.trim();
+  if(!raw){toast("URL eingeben");return}
+  var urls=raw.split(";").map(function(u){return u.trim()}).filter(Boolean);
+  if(urls.length>10){toast("Max 10 URLs");return}
+  if(urls.length>1){return batchUrls(urls)}
+  var url=urls[0];
   var mode=document.querySelector("input[name=mode]:checked").value;
   var sum=document.getElementById("autoSum").checked;
   showProg("Verbinde...",5);
@@ -195,43 +212,120 @@ async function doTranscribe(){
     clearInterval(poll);
     if(!r.ok){var e=await r.json().catch(function(){return{}});showProg("Fehler",100);addLog("FEHLER: "+(e.detail||"HTTP "+r.status));toast("Fehler: "+(e.detail||r.status));return}
     showProg("Fertig!",100);
-    var d=await r.json();
-    currentResult=d;
-    addLog("OK: "+(d.method||d.title||""));
-    document.getElementById("resTitle").textContent=d.title||"Ergebnis";
-    document.getElementById("resMeta").textContent=(d.method||"")+" | "+(d.channel||"")+" | "+Math.round((d.transcript.duration||0)/60)+" Min";
-    document.getElementById("resText").textContent=d.transcript.full_text||"";
-    document.getElementById("result").classList.remove("hidden");
-    toast("Transkription fertig");
+    var d=await r.json();showResult(d);
     setTimeout(hideProg,2000);
   }catch(e){clearInterval(poll);showProg("Fehler",100);addLog("FEHLER: "+e.message);toast(e.message)}
 }
+
+async function batchUrls(urls){
+  for(var i=0;i<urls.length;i++){
+    showProg("Batch "+(i+1)+"/"+urls.length,Math.round(i/urls.length*100));
+    addLog("Batch "+(i+1)+"/"+urls.length+": "+urls[i].slice(0,50));
+    try{await fetch("/api/transcribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:urls[i],mode:"auto",auto_summary:false})})}
+    catch(e){addLog("FEHLER: "+urls[i].slice(0,30))}
+  }
+  showProg("Batch fertig!",100);addLog("Batch fertig: "+urls.length+" URLs");toast("Batch fertig!");setTimeout(hideProg,3000)
+}
+
+function showResult(d){
+  currentResult=d;
+  addLog("OK: "+(d.method||d.title||""));
+  document.getElementById("resTitle").textContent=d.title||"Ergebnis";
+  document.getElementById("resMeta").textContent=(d.method||"")+" | "+(d.channel||"")+" | "+Math.round((d.transcript.duration||0)/60)+" Min";
+  document.getElementById("resText").textContent=d.transcript.full_text||"";
+  document.getElementById("result").classList.remove("hidden");
+  toast("Transkription fertig")
+}
 function showTab(t){if(!currentResult)return;var el=document.getElementById("resText");if(t==="srt"){var s=currentResult.transcript.segments||[];el.textContent=s.map(function(x,i){return(i+1)+"\n"+(x.start_formatted||"00:00:00")+" --> "+(x.end_formatted||"00:00:00")+"\n"+x.text}).join("\n\n")}else{el.textContent=currentResult.transcript.full_text||""}}
-function copyResult(){if(currentResult)navigator.clipboard.writeText(currentResult.transcript.full_text);toast("Kopiert")}
+function copyResult(){if(currentResult)navigator.clipboard.writeText(document.getElementById("resText").textContent);toast("Kopiert")}
 async function doInfo(){
-  var url=document.getElementById("url").value.trim();
-  if(!url)return;
+  var url=document.getElementById("url").value.trim();if(!url)return;
   try{var r=await fetch("/api/info",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url})});var d=await r.json();toast(d.title+" | "+d.channel+" | "+Math.round((d.duration||0)/60)+"min")}catch(e){toast("Info-Fehler")}
 }
 
-// ═══ History ═══
+// === Audio Upload ===
+var dropZone=document.getElementById("dropZone");
+dropZone.addEventListener("dragover",function(e){e.preventDefault();dropZone.classList.add("over")});
+dropZone.addEventListener("dragleave",function(){dropZone.classList.remove("over")});
+dropZone.addEventListener("drop",function(e){e.preventDefault();dropZone.classList.remove("over");addFiles(e.dataTransfer.files)});
+document.getElementById("audioFiles").addEventListener("change",function(e){addFiles(e.target.files)});
+
+function addFiles(fileList){
+  for(var i=0;i<fileList.length;i++)pendingFiles.push(fileList[i]);
+  renderUploadList();
+}
+function renderUploadList(){
+  var el=document.getElementById("uploadList");
+  if(!pendingFiles.length){el.innerHTML="";document.getElementById("uploadBtn").classList.add("hidden");return}
+  el.innerHTML=pendingFiles.map(function(f,i){return"<div class='flex-row' style='padding:3px 0;border-bottom:1px solid var(--border)'><span>"+esc(f.name)+" ("+Math.round(f.size/1024)+" KB)</span><button class='btn btn-err btn-sm' onclick='rmFile("+i+")'>X</button></div>"}).join("");
+  document.getElementById("uploadBtn").classList.remove("hidden")
+}
+function rmFile(i){pendingFiles.splice(i,1);renderUploadList()}
+
+async function uploadAll(){
+  if(!pendingFiles.length)return;
+  for(var i=0;i<pendingFiles.length;i++){
+    showProg("Upload "+(i+1)+"/"+pendingFiles.length+": "+pendingFiles[i].name,Math.round(i/pendingFiles.length*100));
+    addLog("Upload "+(i+1)+"/"+pendingFiles.length+": "+pendingFiles[i].name);
+    var fd=new FormData();fd.append("file",pendingFiles[i]);
+    try{
+      var r=await fetch("/api/upload-audio",{method:"POST",body:fd});
+      if(r.ok){var d=await r.json();showResult(d);addLog("OK: "+d.title)}
+      else{var e=await r.json().catch(function(){return{}});addLog("FEHLER: "+(e.detail||"HTTP "+r.status))}
+    }catch(e){addLog("FEHLER: "+e.message)}
+  }
+  pendingFiles=[];renderUploadList();showProg("Upload fertig!",100);setTimeout(hideProg,3000)
+}
+
+// === Reports ===
+async function genReport(){
+  if(!currentResult)return;
+  var style=document.getElementById("reportStyle").value;
+  addLog("Report: "+style+" fuer "+currentResult.title);
+  toast("Report wird generiert...");
+  try{
+    var r=await fetch("/api/report/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:currentResult.job_id,style:style,title:currentResult.title,channel:currentResult.channel})});
+    if(!r.ok){var e=await r.json().catch(function(){return{}});toast("Fehler: "+(e.detail||"?"));return}
+    var d=await r.json();
+    document.getElementById("resText").textContent=d.content||"";
+    addLog("Report OK ("+d.model+", "+(d.tokens||0)+" tokens)");
+    toast("Report fertig!")
+  }catch(e){toast("Report-Fehler: "+e.message)}
+}
+
+// === Nextcloud ===
+async function pushNextcloud(){
+  if(!currentResult)return;
+  addLog("Nextcloud upload: "+currentResult.title);
+  try{
+    var r=await fetch("/api/nextcloud/upload",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:currentResult.job_id,format:"txt",channel:currentResult.channel||""})});
+    var d=await r.json();
+    if(d.ok){toast("Nextcloud: "+d.path);addLog("Nextcloud OK: "+d.path)}
+    else{toast("NC-Fehler: "+(d.error||"?"));addLog("FEHLER: "+(d.error||"?"))}
+  }catch(e){toast("NC-Fehler: "+e.message)}
+}
+
+// === History ===
 async function loadHistory(){
   try{
     var r=await fetch("/api/transcripts");var items=await r.json();
     var el=document.getElementById("histList");
     if(!items.length){el.innerHTML="<div style='color:var(--muted)'>Noch keine Transkripte</div>";return}
-    el.innerHTML=items.slice(0,10).map(function(t){
+    el.innerHTML=items.slice(0,20).map(function(t){
       var dur=t.duration?Math.round(t.duration/60)+" Min":"";
       var date=t.created_at?new Date(t.created_at).toLocaleDateString("de-DE")+" "+new Date(t.created_at).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"";
-      var ch=t.channel?"<span style='color:var(--accent)'>"+esc(t.channel)+"</span> · ":"";
-      var media=(t.media_files||[]).map(function(f){return"<a href='"+f.url+"' download class='btn btn-sm btn-outline' style='font-size:10px'>"+f.name.split(".").pop().toUpperCase()+"</a>"}).join(" ");
-      return"<div class='hist-item'><div style='display:flex;justify-content:space-between'><div><b>"+esc(t.title||"?")+"</b><br><span style='font-size:10px;color:var(--sec)'>"+ch+(t.method||t.mode||"")+" · "+dur+" · "+date+"</span></div><button class='btn btn-err btn-sm' onclick=\"delTranscript('"+t.job_id+"')\">&#10005;</button></div><div style='display:flex;gap:4px;margin-top:4px;flex-wrap:wrap'><a href='/api/transcripts/"+encodeURIComponent(t.filename)+"?format=txt' download class='btn btn-sm btn-outline' style='font-size:10px'>TXT</a><a href='/api/transcripts/"+encodeURIComponent(t.filename)+"?format=srt' download class='btn btn-sm btn-outline' style='font-size:10px'>SRT</a>"+media+"</div></div>"
-    }).join("");
+      var ch=t.channel?"<span style='color:var(--accent)'>"+esc(t.channel)+"</span> | ":"";
+      return"<div class='hist-item'><div style='display:flex;justify-content:space-between;align-items:flex-start'><div style='flex:1'><b>"+esc(t.title||"?")+"</b><br><span style='font-size:10px;color:var(--sec)'>"+ch+(t.method||t.mode||"")+" | "+dur+" | "+date+"</span></div><div class='flex-row'><button class='btn btn-sm btn-outline' onclick=\"ncUpload('"+t.job_id+"','"+esc(t.channel||"")+"')\">NC</button><button class='btn btn-err btn-sm' onclick=\"delTranscript('"+t.job_id+"')\">X</button></div></div><div class='flex-row' style='margin-top:4px'><a href='/api/transcripts/"+encodeURIComponent(t.filename)+"?format=txt' download class='btn btn-sm btn-outline' style='font-size:10px'>TXT</a><a href='/api/transcripts/"+encodeURIComponent(t.filename)+"?format=srt' download class='btn btn-sm btn-outline' style='font-size:10px'>SRT</a><a href='/api/transcripts/"+encodeURIComponent(t.filename)+"?format=json' download class='btn btn-sm btn-outline' style='font-size:10px'>JSON</a></div></div>"
+    }).join("")
   }catch(e){console.error(e)}
 }
 async function delTranscript(id){if(!confirm("Loeschen?"))return;await fetch("/api/transcripts/"+id,{method:"DELETE"});loadHistory()}
+async function ncUpload(jobId,ch){
+  try{var r=await fetch("/api/nextcloud/upload",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:jobId,format:"txt",channel:ch})});var d=await r.json();toast(d.ok?"NC: "+d.path:"NC-Fehler: "+(d.error||"?"))}catch(e){toast("NC: "+e.message)}
+}
+function exportZip(audio){window.open("/api/transcripts/export/zip?include_audio="+(audio?"true":"false"),"_blank")}
 
-// ═══ Channel Videos ═══
+// === Channel Videos ===
 async function loadChannel(){
   var url=document.getElementById("chUrl").value.trim();if(!url)return;
   var el=document.getElementById("chList");el.innerHTML="<span style='color:var(--accent)'>Lade...</span>";
@@ -239,15 +333,14 @@ async function loadChannel(){
   try{
     var r=await fetch("/api/channel/videos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url,limit:10})});
     var d=await r.json();
-    if(d.error){el.innerHTML="<span style='color:var(--err)'>"+esc(d.error)+"</span>";addLog("FEHLER: "+d.error);return}
+    if(d.error){el.innerHTML="<span style='color:var(--err)'>"+esc(d.error)+"</span>";return}
     chVideos=d.videos||[];
     if(!chVideos.length){el.innerHTML="Keine Videos";return}
-    el.innerHTML="<div style='font-size:11px;color:var(--sec);margin-bottom:4px'>"+esc(d.channel||"Channel")+" — "+chVideos.length+" Videos</div>"+chVideos.map(function(v,i){
+    el.innerHTML="<div style='font-size:11px;color:var(--sec);margin-bottom:4px'>"+esc(d.channel||"Channel")+" | "+chVideos.length+" Videos</div>"+chVideos.map(function(v,i){
       var dur=v.duration?Math.floor(v.duration/60)+":"+String(Math.floor(v.duration%60)).padStart(2,"0"):"?";
       return"<label style='display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);cursor:pointer;align-items:flex-start'><input type='checkbox' class='vck' data-i='"+i+"' checked style='margin-top:3px'><div style='flex:1'><div style='font-size:12px'>"+esc(v.title)+"</div><div style='font-size:10px;color:var(--muted)'>"+dur+"</div></div><a href='"+v.url+"' target='_blank' style='font-size:10px'>&#8599;</a></label>"
     }).join("");
     document.getElementById("batchCtrl").classList.remove("hidden");
-    addLog("Channel: "+chVideos.length+" Videos geladen");
   }catch(e){el.innerHTML="<span style='color:var(--err)'>"+e.message+"</span>"}
 }
 function selAll(v){document.querySelectorAll(".vck").forEach(function(c){c.checked=v})}
@@ -258,13 +351,12 @@ async function batchTranscribe(){
   for(var i=0;i<sel.length;i++){
     st.textContent=(i+1)+"/"+sel.length+": "+sel[i].title.slice(0,35)+"...";
     showProg("Batch "+(i+1)+"/"+sel.length,Math.round(i/sel.length*100));
-    addLog("Batch "+(i+1)+"/"+sel.length+": "+sel[i].title.slice(0,40));
     try{await fetch("/api/transcribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:sel[i].url,mode:"auto",auto_summary:false})})}catch(e){addLog("FEHLER: "+sel[i].title.slice(0,30))}
   }
-  st.textContent="Fertig! "+sel.length+" transkribiert";showProg("Batch fertig",100);addLog("Batch fertig: "+sel.length+" Videos");setTimeout(hideProg,3000)
+  st.textContent="Fertig! "+sel.length+" transkribiert";showProg("Batch fertig",100);setTimeout(hideProg,3000)
 }
 
-// ═══ Cookies ═══
+// === Cookies ===
 async function refreshCookies(){
   try{
     var r=await fetch("/api/cookies/status");var d=await r.json();
@@ -274,15 +366,10 @@ async function refreshCookies(){
     fetch("/api/cookies/history").then(function(r){return r.json()}).then(function(h){if(h.length){var l=h[h.length-1];document.getElementById("cookieHist").textContent="Letzter Import: "+l.timestamp+" ("+l.method+")"}}).catch(function(){})
   }catch(e){}
 }
-async function doHarvest(){
-  document.getElementById("cookieBadge").textContent="...";addLog("Auto-Harvest...");toast("Harvest laeuft (15-30s)");
-  try{var r=await fetch("/api/cookies/harvest",{method:"POST"});var d=await r.json();if(r.ok){addLog("Harvest OK: "+d.cookie_count+" Cookies");toast("Cookies: "+d.cookie_count)}else{addLog("FEHLER: "+(d.detail||"?"));toast("Fehler: "+(d.detail||"?"))}}catch(e){addLog("FEHLER: "+e.message);toast(e.message)}
-  refreshCookies()
-}
 async function uploadCookieFile(){
   var f=document.getElementById("cookieFile");if(!f.files.length){toast("Keine Datei");return}
   var fd=new FormData();fd.append("file",f.files[0]);
-  try{var r=await fetch("/api/cookies/upload",{method:"POST",body:fd});var d=await r.json();if(d.ok||d.status==="ok"){toast("Cookies geladen: "+(d.entries||d.cookie_count))}else toast("Fehler")}catch(e){toast(e.message)}
+  try{var r=await fetch("/api/cookies/upload",{method:"POST",body:fd});var d=await r.json();toast(d.ok?"Cookies: "+(d.entries||0):"Fehler")}catch(e){toast(e.message)}
   refreshCookies()
 }
 async function saveCookiePaste(){
@@ -290,80 +377,114 @@ async function saveCookiePaste(){
   var resp;
   if(t.indexOf("\t")>=0||t.indexOf("# ")===0){var b=new Blob([t],{type:"text/plain"});var fd=new FormData();fd.append("file",b,"cookies.txt");resp=await fetch("/api/cookies/upload",{method:"POST",body:fd})}
   else{resp=await fetch("/api/cookies/from-browser",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cookies:t})})}
-  var d=await resp.json();if(d.ok){toast("Gespeichert! "+(d.entries||"")+" Eintraege");document.getElementById("cookiePaste").value="";document.getElementById("cookiePaste").style.borderColor="var(--green)";setTimeout(function(){document.getElementById("cookiePaste").style.borderColor=""},2000)}else toast("Fehler");
+  var d=await resp.json();toast(d.ok?"Gespeichert! "+(d.entries||""):"Fehler");
+  if(d.ok)document.getElementById("cookiePaste").value="";
   refreshCookies()
 }
 async function doCookieDelete(){if(!confirm("Cookies loeschen?"))return;await fetch("/api/cookies",{method:"DELETE"});toast("Geloescht");refreshCookies()}
-async function doCookieLogout(){if(!confirm("Logout?"))return;await fetch("/api/cookies",{method:"DELETE"});toast("Ausgeloggt");refreshCookies()}
 
-// ═══ Google Login + 2FA ═══
-async function doGoogleLogin(){
-  var email=document.getElementById("gEmail").value.trim();var pw=document.getElementById("gPass").value;
-  if(!email||!pw){toast("Email+Passwort eingeben");return}
-  var btn=document.getElementById("gLoginBtn");btn.textContent="Logge ein...";btn.disabled=true;addLog("Google Login: "+email);
-  try{
-    var r=await fetch("/api/cookies/google-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:pw})});
-    var d=await r.json();
-    if(d.status==="ok"){addLog("Google OK: "+d.cookie_count+" Cookies");toast("Eingeloggt!");togglePanel("glogin");refreshCookies();document.getElementById("gPass").value=""}
-    else if(d.status==="2fa_required"){addLog("2FA: "+d.message);show2fa(d.screenshot,d.message)}
-    else{addLog("FEHLER: "+(d.detail||d.message||"?"));toast("Fehler: "+(d.detail||d.message||"?"))}
-  }catch(e){addLog("FEHLER: "+e.message);toast(e.message)}
-  btn.textContent="Einloggen";btn.disabled=false
-}
-function show2fa(img,hint){
-  document.getElementById("tfaBox").classList.remove("hidden");
-  if(img){document.getElementById("tfaImg").src="data:image/png;base64,"+img;document.getElementById("tfaImg").style.display="block"}
-  document.getElementById("tfaHint").textContent=hint||"2FA Code eingeben"
-}
-async function submit2fa(){
-  var code=document.getElementById("tfaCode").value.trim();if(!code)return;addLog("2FA Code...");
-  try{var r=await fetch("/api/cookies/google-2fa",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:code,action:"code"})});var d=await r.json();
-  if(d.status==="ok"){addLog("2FA OK!");toast("Eingeloggt!");document.getElementById("tfaBox").classList.add("hidden");togglePanel("glogin");refreshCookies()}
-  else if(d.status==="2fa_required"){show2fa(d.screenshot,d.message)}
-  else{addLog("FEHLER: "+(d.message||"?"));toast(d.message||"?")}}catch(e){toast(e.message)}
-}
-async function waitPhone(){
-  addLog("Warte auf Handy (60s)...");toast("Handy bestaetigen...");
-  try{var r=await fetch("/api/cookies/google-2fa",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"phone"})});var d=await r.json();
-  if(d.status==="ok"){addLog("Handy OK!");toast("Eingeloggt!");document.getElementById("tfaBox").classList.add("hidden");togglePanel("glogin");refreshCookies()}
-  else{show2fa(d.screenshot,d.message)}}catch(e){toast(e.message)}
-}
-
-// ═══ Init ═══
-window.addEventListener("load",function(){refreshCookies()});
-
-
+// === Settings ===
 function openSettings(){var el=document.getElementById("settingsPanel");el.classList.toggle("hidden");if(!el.classList.contains("hidden"))ldSettings()}
 async function ldSettings(){
-  try{var r=await fetch("/api/settings");var s=await r.json();
-  var h="<div style='display:grid;gap:8px'>";
-  h+="<div style='border:1px solid var(--border);border-radius:6px;padding:8px'><b style='color:var(--accent)'>Login</b>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Benutzer</label><input data-sk='auth.username' value='"+(s.auth&&s.auth.username||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Passwort</label><input type='password' data-sk='auth.password' value='"+(s.auth&&s.auth.password||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div></div>";
-  h+="<div style='border:1px solid var(--border);border-radius:6px;padding:8px'><b style='color:var(--accent)'>LLM Summary</b>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>API Base</label><input data-sk='llm.api_base' value='"+(s.llm&&s.llm.api_base||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>API Key</label><input type='password' data-sk='llm.api_key' value='"+(s.llm&&s.llm.api_key||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Modell</label><input data-sk='llm.model' value='"+(s.llm&&s.llm.model||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div></div>";
-  h+="<div style='border:1px solid var(--border);border-radius:6px;padding:8px'><b style='color:var(--accent)'>Whisper</b>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Modell</label><select data-sk='whisper.model' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'>";
-  ["tiny","base","small","medium","large-v3"].forEach(function(m){h+="<option value='"+m+"'"+(s.whisper&&s.whisper.model===m?" selected":"")+">"+m+"</option>"});
-  h+="</select></div></div>";
-  h+="<div style='border:1px solid var(--border);border-radius:6px;padding:8px'><b style='color:var(--accent)'>Aufbewahrung</b>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Audio (Stunden)</label><input type='number' data-sk='retention.audio_hours' value='"+(s.retention&&s.retention.audio_hours||24)+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Transkripte (Tage)</label><input type='number' data-sk='retention.transcripts_days' value='"+(s.retention&&s.retention.transcripts_days||30)+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div></div>";
-  h+="<div style='border:1px solid var(--border);border-radius:6px;padding:8px'><b style='color:var(--accent)'>Telegram</b>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>Bot Token</label><input type='password' data-sk='telegram.bot_token' value='"+(s.telegram&&s.telegram.bot_token||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div>";
-  h+="<div><label style='font-size:10px;color:var(--muted)'>User-IDs</label><input data-sk='telegram.allowed_users' value='"+(s.telegram&&s.telegram.allowed_users||"")+"' style='width:100%;padding:3px 6px;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px'></div></div>";
-  h+="</div>";
-  document.getElementById("settingsBody").innerHTML=h}catch(e){document.getElementById("settingsBody").textContent="Fehler: "+e.message}
-}
-async function doSaveSettings(){
-  var u={};document.querySelectorAll("[data-sk]").forEach(function(el){var v=el.value;if(el.type==="number")v=parseInt(v)||0;if(v&&v!=="***")u[el.dataset.sk]=v});
-  try{var r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(u)});
-  if(r.ok){document.getElementById("svd").style.opacity="1";setTimeout(function(){document.getElementById("svd").style.opacity="0"},2000);toast("Settings gespeichert")}
-  else{var d=await r.json().catch(function(){return{}});toast("Fehler: "+(d.detail||"?"))}}catch(e){toast("Fehler: "+e.message)}
+  try{
+    var r=await fetch("/api/settings");var s=await r.json();
+    var h="<div style='display:grid;gap:8px'>";
+
+    // Auth
+    h+="<div class='settings-section'><b>Login</b>";
+    h+="<label>Benutzer</label><input data-sk='auth.username' value='"+(s.auth&&s.auth.username||"")+"'>";
+    h+="<label>Neues Passwort (leer = nicht aendern)</label><input type='password' data-sk='auth.password' placeholder='Neues Passwort'>";
+    h+="</div>";
+
+    // LLM
+    h+="<div class='settings-section'><b>LLM Provider</b>";
+    h+="<label>Aktiver Provider</label><select data-sk='llm.provider' style='width:100%'>";
+    ["litellm","requesty","openai","mistral","custom"].forEach(function(p){h+="<option value='"+p+"'"+(s.llm&&s.llm.provider===p?" selected":"")+">"+p+"</option>"});
+    h+="</select>";
+    h+="<label>API Base</label><input data-sk='llm.api_base' value='"+(s.llm&&s.llm.api_base||"")+"'>";
+    h+="<label>API Key</label><input type='password' data-sk='llm.api_key' value='"+(s.llm&&s.llm.api_key||"")+"'>";
+    h+="<label>Modell</label><input data-sk='llm.model' value='"+(s.llm&&s.llm.model||"")+"'>";
+    h+="<button class='btn btn-sm btn-outline' onclick='testLLM()' style='margin-top:4px'>Test</button> <span id='llmTest' style='font-size:10px'></span>";
+    h+="</div>";
+
+    // Whisper
+    h+="<div class='settings-section'><b>Whisper</b>";
+    h+="<label>Modell</label><select data-sk='whisper.model' style='width:100%'>";
+    ["tiny","base","small","medium","large-v3"].forEach(function(m){h+="<option value='"+m+"'"+(s.whisper&&s.whisper.model===m?" selected":"")+">"+m+"</option>"});
+    h+="</select></div>";
+
+    // Nextcloud
+    h+="<div class='settings-section'><b>Nextcloud</b>";
+    h+="<label>URL</label><input data-sk='nextcloud.url' value='"+(s.nextcloud&&s.nextcloud.url||"")+"'>";
+    h+="<label>Benutzer</label><input data-sk='nextcloud.user' value='"+(s.nextcloud&&s.nextcloud.user||"")+"'>";
+    h+="<label>Passwort</label><input type='password' data-sk='nextcloud.password' value='"+(s.nextcloud&&s.nextcloud.password||"")+"'>";
+    h+="<label>Ordner</label><input data-sk='nextcloud.folder' value='"+(s.nextcloud&&s.nextcloud.folder||"YT-Reports")+"'>";
+    h+="<button class='btn btn-sm btn-outline' onclick='testNC()' style='margin-top:4px'>Test</button> <span id='ncTest' style='font-size:10px'></span>";
+    h+="</div>";
+
+    // Retention
+    h+="<div class='settings-section'><b>Aufbewahrung</b>";
+    h+="<label>Audio (Stunden)</label><input type='number' data-sk='retention.audio_hours' value='"+(s.retention&&s.retention.audio_hours||24)+"'>";
+    h+="<label>Transkripte (Tage)</label><input type='number' data-sk='retention.transcripts_days' value='"+(s.retention&&s.retention.transcripts_days||90)+"'>";
+    h+="<label>Reports (Tage)</label><input type='number' data-sk='retention.reports_days' value='"+(s.retention&&s.retention.reports_days||365)+"'>";
+    h+="</div>";
+
+    // Telegram
+    h+="<div class='settings-section'><b>Telegram</b>";
+    h+="<label>Bot Token</label><input type='password' data-sk='telegram.bot_token' value='"+(s.telegram&&s.telegram.bot_token||"")+"'>";
+    h+="<label>Erlaubte User-IDs (komma-getrennt)</label><input data-sk='telegram.allowed_users' value='"+(s.telegram&&s.telegram.allowed_users||"")+"'>";
+    h+="<label>Default Report-Stil</label><select data-sk='telegram.default_style' style='width:100%'>";
+    ["executive","detailed","newsletter","transcript_only"].forEach(function(st){h+="<option value='"+st+"'"+(s.telegram&&s.telegram.default_style===st?" selected":"")+">"+st+"</option>"});
+    h+="</select></div>";
+
+    h+="</div>";
+    document.getElementById("settingsBody").innerHTML=h
+  }catch(e){document.getElementById("settingsBody").textContent="Fehler: "+e.message}
 }
 
+async function doSaveSettings(){
+  var u={};
+  document.querySelectorAll("[data-sk]").forEach(function(el){
+    var v=el.value;
+    if(el.type==="number")v=parseInt(v)||0;
+    if(v!==""&&v!=="***")u[el.dataset.sk]=v
+  });
+  try{
+    var r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(u)});
+    if(r.ok){document.getElementById("svd").style.opacity="1";setTimeout(function(){document.getElementById("svd").style.opacity="0"},2000);toast("Settings gespeichert")}
+    else{var d=await r.json().catch(function(){return{}});toast("Fehler: "+(d.detail||"?"))}
+  }catch(e){toast("Fehler: "+e.message)}
+}
+
+async function testLLM(){
+  var base=document.querySelector("[data-sk='llm.api_base']").value;
+  var key=document.querySelector("[data-sk='llm.api_key']").value;
+  var model=document.querySelector("[data-sk='llm.model']").value;
+  var span=document.getElementById("llmTest");span.textContent="Teste...";span.style.color="var(--sec)";
+  try{
+    var r=await fetch("/api/settings/test-llm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_base:base,api_key:key,model:model})});
+    var d=await r.json();
+    if(d.ok){span.textContent="OK ("+d.model+")";span.style.color="var(--green)"}
+    else{span.textContent="Fehler: "+d.error;span.style.color="var(--err)"}
+  }catch(e){span.textContent=e.message;span.style.color="var(--err)"}
+}
+
+async function testNC(){
+  var span=document.getElementById("ncTest");span.textContent="Teste...";span.style.color="var(--sec)";
+  try{
+    var r=await fetch("/api/nextcloud/status");var d=await r.json();
+    if(d.ok){span.textContent="OK (v"+d.version+", Auth: "+d.auth+")";span.style.color="var(--green)"}
+    else{span.textContent="Fehler: "+d.error;span.style.color="var(--err)"}
+  }catch(e){span.textContent=e.message;span.style.color="var(--err)"}
+}
+
+// === Keyboard Shortcut ===
+document.addEventListener("keydown",function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();doTranscribe()}
+});
+
+// === Init ===
+window.addEventListener("load",function(){refreshCookies()});
 </script>
 </body>
 </html>

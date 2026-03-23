@@ -1,9 +1,22 @@
 services:
+  pot-server:
+    image: brainicism/bgutil-ytdlp-pot-provider
+    container_name: pot-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4416:4416"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
   app:
     build: .
     container_name: voicescriptor
     privileged: true
     restart: unless-stopped
+    depends_on:
+      - pot-server
     ports:
       - "10.10.0.1:8470:8000"
     volumes:
@@ -12,6 +25,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - UVICORN_LOOP=asyncio
+    networks:
+      - default
+      - nextcloud_net
     deploy:
       resources:
         limits:
@@ -24,3 +40,8 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
+
+networks:
+  nextcloud_net:
+    external: true
+    name: nextcloud_default

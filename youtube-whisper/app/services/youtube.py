@@ -20,26 +20,39 @@ _YT_HOSTS = {
 }
 
 
+def _base_opts() -> dict:
+    """Gemeinsame yt-dlp Optionen mit POT-Token-Support und Cookie-Handling."""
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "compat_opts": set(),
+        "extractor_args": {"youtube": {"player_client": ["mweb", "tv"]}},
+    }
+    cookie_path = Path("/app/data/cookies.txt")
+    if cookie_path.exists() and cookie_path.stat().st_size > 100:
+        opts["cookiefile"] = str(cookie_path)
+    return opts
+
+
 def validate_youtube_url(url: str) -> str:
-    """Prüft und bereinigt YouTube-URL."""
+    """Prueft und bereinigt YouTube-URL."""
     url = url.strip()
+    # Semikolon-Reste abschneiden (Batch-Trenner)
+    if ";" in url:
+        url = url.split(";")[0].strip()
     from urllib.parse import urlparse
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower()
     if not any(host == h for h in _YT_HOSTS):
-        raise ValueError(f"Keine gültige YouTube-URL: {url}")
+        raise ValueError(f"Keine gueltige YouTube-URL: {url}")
     return url
 
 
 def get_video_info(url: str) -> dict:
-    """Holt Video-Metadaten + verfügbare Untertitel-Sprachen."""
+    """Holt Video-Metadaten + verfuegbare Untertitel-Sprachen."""
     url = validate_youtube_url(url)
     opts = {
-        "cookiefile": "/app/data/cookies.txt" if __import__("pathlib").Path("/app/data/cookies.txt").exists() else None,
-        "compat_opts": set(),
-        "extractor_args": {"youtube": {"player_client": ["web"]}},
-        "quiet": True,
-        "no_warnings": True,
+        **_base_opts(),
         "skip_download": True,
         "writesubtitles": True,
         "writeautomaticsub": True,
@@ -47,7 +60,6 @@ def get_video_info(url: str) -> dict:
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    # Verfügbare Untertitel sammeln
     manual_subs = list((info.get("subtitles") or {}).keys())
     auto_subs = list((info.get("automatic_captions") or {}).keys())
 
@@ -70,18 +82,13 @@ def get_video_info(url: str) -> dict:
 def extract_subtitles(url: str, language: str = "de") -> dict | None:
     """
     Extrahiert vorhandene Untertitel direkt von YouTube.
-    Schnellster Weg — kein Audio-Download, kein Whisper nötig.
-    Probiert: manuelle Subs → auto-generierte Subs → None
+    Probiert: manuelle Subs -> auto-generierte Subs -> None
     """
     url = validate_youtube_url(url)
 
     for sub_type in ("subtitles", "automatic_captions"):
         opts = {
-        "cookiefile": "/app/data/cookies.txt" if __import__("pathlib").Path("/app/data/cookies.txt").exists() else None,
-        "compat_opts": set(),
-        "extractor_args": {"youtube": {"player_client": ["web"]}},
-            "quiet": True,
-            "no_warnings": True,
+            **_base_opts(),
             "skip_download": True,
             "writesubtitles": sub_type == "subtitles",
             "writeautomaticsub": sub_type == "automatic_captions",
@@ -96,7 +103,6 @@ def extract_subtitles(url: str, language: str = "de") -> dict | None:
             subs_dict = info.get(sub_type) or {}
             lang_subs = subs_dict.get(language, [])
 
-            # Finde JSON3-Format
             json3_url = None
             for fmt in lang_subs:
                 if fmt.get("ext") == "json3":
@@ -106,7 +112,6 @@ def extract_subtitles(url: str, language: str = "de") -> dict | None:
             if not json3_url:
                 continue
 
-            # JSON3 herunterladen und parsen
             import urllib.request
             import json
 
@@ -118,7 +123,6 @@ def extract_subtitles(url: str, language: str = "de") -> dict | None:
             full_text_parts = []
 
             for event in events:
-                # Nur Events mit tatsächlichem Text
                 segs = event.get("segs")
                 if not segs:
                     continue
@@ -147,8 +151,10 @@ def extract_subtitles(url: str, language: str = "de") -> dict | None:
 
             is_manual = sub_type == "subtitles"
             logger.info(
-                f"Untertitel extrahiert: {len(segments)} Segmente, "
-                f"Typ: {'manuell' if is_manual else 'auto-generiert'}, Sprache: {language}"
+                "Untertitel extrahiert: %d Segmente, Typ: %s, Sprache: %s",
+                len(segments),
+                "manuell" if is_manual else "auto-generiert",
+                language,
             )
 
             return {
@@ -163,35 +169,28 @@ def extract_subtitles(url: str, language: str = "de") -> dict | None:
             }
 
         except Exception as e:
-            logger.debug(f"Untertitel-Extraktion ({sub_type}) fehlgeschlagen: {e}")
+            logger.debug("Untertitel-Extraktion (%s) fehlgeschlagen: %s", sub_type, e)
             continue
 
     return None
 
 
 def download_audio(url: str) -> dict:
-    """
-    Lädt Audio als WAV (16kHz mono) — optimal für Whisper.
-    Nur nötig wenn keine Untertitel verfügbar.
-    """
+    """Laedt Audio als MP3 (16kHz mono) -- optimal fuer Whisper."""
     url = validate_youtube_url(url)
     job_id = uuid.uuid4().hex[:12]
     out_dir = settings.downloads_dir
     output_tpl = str(out_dir / f"{job_id}_%(title).60s.%(ext)s")
 
     opts = {
-        "cookiefile": "/app/data/cookies.txt" if __import__("pathlib").Path("/app/data/cookies.txt").exists() else None,
-        "compat_opts": set(),
-        "extractor_args": {"youtube": {"player_client": ["web"]}},
+        **_base_opts(),
         "format": "ba/bestaudio/best",
         "outtmpl": output_tpl,
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
-            "preferredcodec": "wav",
+            "preferredcodec": "mp3",
         }],
         "postprocessor_args": ["-ar", "16000", "-ac", "1"],
-        "quiet": True,
-        "no_warnings": True,
         "nocheckcertificate": False,
         "socket_timeout": 30,
     }
@@ -199,14 +198,16 @@ def download_audio(url: str) -> dict:
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
 
-    wav_files = list(out_dir.glob(f"{job_id}_*.wav"))
-    if not wav_files:
-        raise FileNotFoundError(f"WAV nicht gefunden nach Download (Job: {job_id})")
+    audio_files = list(out_dir.glob(f"{job_id}_*.mp3"))
+    if not audio_files:
+        audio_files = list(out_dir.glob(f"{job_id}_*"))
+    if not audio_files:
+        raise FileNotFoundError(f"Audio nicht gefunden nach Download (Job: {job_id})")
 
-    audio_path = wav_files[0]
+    audio_path = audio_files[0]
     file_size = audio_path.stat().st_size
 
-    logger.info(f"Audio heruntergeladen: {audio_path.name} ({file_size / 1024 / 1024:.1f} MB)")
+    logger.info("Audio heruntergeladen: %s (%.1f MB)", audio_path.name, file_size / 1024 / 1024)
 
     return {
         "job_id": job_id,
@@ -219,15 +220,15 @@ def download_audio(url: str) -> dict:
 
 
 def cleanup_audio(audio_path: str):
-    """Löscht Audio nach Transkription."""
+    """Loescht Audio nach Transkription."""
     try:
         Path(audio_path).unlink(missing_ok=True)
     except Exception as e:
-        logger.warning(f"Cleanup fehlgeschlagen: {e}")
+        logger.warning("Cleanup fehlgeschlagen: %s", e)
 
 
 def _fmt_ts(seconds: float) -> str:
-    """Sekunden → HH:MM:SS.mmm"""
+    """Sekunden -> HH:MM:SS.mmm"""
     total = int(seconds)
     h, remainder = divmod(total, 3600)
     m, s = divmod(remainder, 60)
@@ -236,9 +237,9 @@ def _fmt_ts(seconds: float) -> str:
 
 
 def download_audio_subprocess(url: str) -> dict:
-    """Download audio using subprocess (supports --remote-components)."""
-    import subprocess, uuid
-    from pathlib import Path
+    """Download audio using subprocess (supports --remote-components + POT)."""
+    import subprocess
+    url = validate_youtube_url(url)
     job_id = uuid.uuid4().hex[:12]
     out_dir = Path("/app/data/downloads")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -249,7 +250,7 @@ def download_audio_subprocess(url: str) -> dict:
         cookie_arg = ["--cookies", "/app/data/cookies.txt"]
 
     cmd = ["yt-dlp", "--remote-components", "ejs:github"] + cookie_arg + [
-        "--extractor-args", "youtube:player_client=web",
+        "--extractor-args", "youtube:player_client=mweb,tv",
         "-f", "ba/bestaudio/best",
         "-x", "--audio-format", "mp3",
         "-o", output,
@@ -260,17 +261,14 @@ def download_audio_subprocess(url: str) -> dict:
     if r.returncode != 0:
         raise ValueError(f"Download fehlgeschlagen: {r.stderr[:300]}")
 
-    # Get the output filepath
     filepath = r.stdout.strip().split("\n")[-1]
     if not filepath or not Path(filepath).exists():
-        # Find file by job_id
         files = list(out_dir.glob(f"{job_id}_*"))
         if files:
             filepath = str(files[0])
         else:
             raise ValueError("Audio-Datei nicht gefunden")
 
-    # Get title from filename
     fname = Path(filepath).stem
     title = fname[len(job_id)+1:] if fname.startswith(job_id) else fname
 
